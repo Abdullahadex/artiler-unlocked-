@@ -181,6 +181,38 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          id: string
+          event_name: string
+          event_properties: Json
+          user_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_name: string
+          event_properties?: Json
+          user_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_name?: string
+          event_properties?: Json
+          user_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
