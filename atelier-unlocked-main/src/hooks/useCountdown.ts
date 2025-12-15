@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface TimeLeft {
   days: number;
@@ -9,7 +9,7 @@ interface TimeLeft {
 }
 
 export const useCountdown = (targetDate: Date) => {
-  const calculateTimeLeft = (): TimeLeft => {
+  const calculateTimeLeft = useCallback((): TimeLeft => {
     const difference = targetDate.getTime() - Date.now();
     
     if (difference <= 0) {
@@ -23,7 +23,7 @@ export const useCountdown = (targetDate: Date) => {
       seconds: Math.floor((difference / 1000) % 60),
       total: difference,
     };
-  };
+  }, [targetDate]);
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft);
   const [isExpired, setIsExpired] = useState(timeLeft.total <= 0);
@@ -40,7 +40,7 @@ export const useCountdown = (targetDate: Date) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [calculateTimeLeft]);
 
   return { timeLeft, isExpired };
 };

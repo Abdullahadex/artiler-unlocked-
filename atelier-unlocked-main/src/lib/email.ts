@@ -8,7 +8,7 @@ export type EmailTemplate =
   | 'welcome';
 
 export interface EmailData {
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined | Record<string, unknown>;
 }
 
 export async function sendEmail(

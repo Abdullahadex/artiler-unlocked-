@@ -4,7 +4,7 @@
 
 export interface AnalyticsEvent {
   name: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, string | number | boolean | null | undefined>;
 }
 
 class Analytics {
@@ -23,8 +23,8 @@ class Analytics {
     }
 
     // Send to analytics service (Google Analytics, Mixpanel, etc.)
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', event.name, event.properties);
+    if (typeof window !== 'undefined' && 'gtag' in window && typeof (window as { gtag?: (...args: unknown[]) => void }).gtag === 'function') {
+      (window as { gtag: (command: string, eventName: string, params?: Record<string, unknown>) => void }).gtag('event', event.name, event.properties);
     }
 
     // Also send to custom analytics endpoint
