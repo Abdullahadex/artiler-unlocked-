@@ -24,4 +24,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-export { Toaster, toast };
+export { Toaster };
+// Export toast separately to avoid fast refresh warning
+export { toast };
