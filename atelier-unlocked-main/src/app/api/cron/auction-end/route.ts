@@ -40,17 +40,21 @@ export async function GET(request: NextRequest) {
           .update({ status: 'SOLD' })
           .eq('id', auction.id);
 
-        // Notify winner
+        // Notify winner - get email from auth.users
         if (winningBid.bidder) {
-          await sendEmail(
-            winningBid.bidder.id, // Would need email field
-            'auctionWon',
-            {
-              auctionTitle: auction.title,
-              amount: winningBid.amount,
-              auctionId: auction.id,
-            }
-          );
+          const { data: { user: winnerUser } } = await supabase.auth.admin.getUserById(winningBid.bidder.id);
+          
+          if (winnerUser?.email) {
+            await sendEmail(
+              winnerUser.email,
+              'auctionWon',
+              {
+                auctionTitle: auction.title,
+                amount: winningBid.amount,
+                auctionId: auction.id,
+              }
+            ).catch(console.error);
+          }
         }
       }
     }

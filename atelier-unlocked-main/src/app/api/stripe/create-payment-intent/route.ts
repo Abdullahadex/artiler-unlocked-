@@ -4,6 +4,14 @@ import { createClient } from '@/integrations/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: 'Payment processing is not configured' },
+        { status: 503 }
+      );
+    }
+
     const { auctionId, amount } = await request.json();
 
     if (!auctionId || !amount) {

@@ -3,15 +3,27 @@ import { createClient } from '@/integrations/supabase/server';
 import nodemailer from 'nodemailer';
 
 // Email transporter setup (using Supabase or external service)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// Only create transporter if SMTP is configured
+const getTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT;
+  const user = process.env.SMTP_USER;
+  const password = process.env.SMTP_PASSWORD;
+
+  if (!host || !port || !user || !password) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port: parseInt(port),
+    secure: false,
+    auth: {
+      user,
+      pass: password,
+    },
+  });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,6 +78,16 @@ export async function POST(request: NextRequest) {
     };
 
     const html = templates[template]?.(data) || '';
+
+    const transporter = getTransporter();
+    if (!transporter) {
+      console.warn('SMTP not configured. Email not sent:', { to, subject });
+      // Don't fail the request if email is not configured
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Email service not configured' 
+      });
+    }
 
     await transporter.sendMail({
       from: process.env.SMTP_FROM || 'noreply@atelier.com',

@@ -17,8 +17,15 @@ export async function sendEmail(
   data: EmailData
 ) {
   try {
+    // Check if email service is configured
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.warn('Email service not configured. Email not sent:', { to, template });
+      return null;
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const subject = getEmailSubject(template);
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send`, {
+    const response = await fetch(`${appUrl}/api/email/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

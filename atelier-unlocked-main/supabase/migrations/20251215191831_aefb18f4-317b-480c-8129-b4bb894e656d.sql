@@ -1,5 +1,5 @@
 -- Create enum for user roles in auctions
-CREATE TYPE public.user_role AS ENUM ('collector', 'designer');
+CREATE TYPE public.user_role AS ENUM ('collector', 'designer', 'admin');
 
 -- Create enum for auction status
 CREATE TYPE public.auction_status AS ENUM ('LOCKED', 'UNLOCKED', 'SOLD', 'VOID');
@@ -150,8 +150,10 @@ CREATE TRIGGER update_auctions_updated_at
 ALTER PUBLICATION supabase_realtime ADD TABLE public.auctions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bids;
 
--- Create storage bucket for auction images
-INSERT INTO storage.buckets (id, name, public) VALUES ('auction-images', 'auction-images', true);
+-- Create storage bucket for auction images (if it doesn't exist)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('auction-images', 'auction-images', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for auction images
 CREATE POLICY "Anyone can view auction images"
