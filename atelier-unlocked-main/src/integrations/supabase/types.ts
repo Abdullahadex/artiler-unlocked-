@@ -190,7 +190,7 @@ export type Database = {
     }
     Enums: {
       auction_status: "LOCKED" | "UNLOCKED" | "SOLD" | "VOID"
-      user_role: "collector" | "designer"
+      user_role: "collector" | "designer" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
