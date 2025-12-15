@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { User, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -11,9 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isLanding = location.pathname === '/';
+  const pathname = usePathname();
+  const router = useRouter();
+  const isLanding = pathname === '/';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
 
@@ -21,7 +24,7 @@ const Header = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    router.push('/');
   };
 
   return (
@@ -29,7 +32,7 @@ const Header = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link 
-            to="/" 
+            href="/" 
             className="font-serif text-xl tracking-wide text-foreground hover:text-accent transition-colors duration-500"
           >
             ATELIER
@@ -38,25 +41,39 @@ const Header = () => {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             <Link
-              to="/floor"
+              href="/floor"
               className={`ui-label transition-colors duration-300 ${
-                location.pathname === '/floor' 
+                pathname === '/floor' 
                   ? 'text-accent' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               The Floor
             </Link>
-            <Link
-              to="/vault"
-              className={`ui-label transition-colors duration-300 ${
-                location.pathname === '/vault' 
-                  ? 'text-accent' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              The Vault
-            </Link>
+            {user && (
+              <Link
+                href="/vault"
+                className={`ui-label transition-colors duration-300 ${
+                  pathname === '/vault' 
+                    ? 'text-accent' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                The Vault
+              </Link>
+            )}
+            {profile?.role === 'admin' && (
+              <Link
+                href="/admin"
+                className={`ui-label transition-colors duration-300 ${
+                  pathname === '/admin' 
+                    ? 'text-accent' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Admin
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-4">
@@ -83,7 +100,7 @@ const Header = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/vault" className="cursor-pointer">
+                    <Link href="/vault" className="cursor-pointer">
                       <User className="w-4 h-4 mr-2" />
                       The Vault
                     </Link>
@@ -97,7 +114,7 @@ const Header = () => {
               </DropdownMenu>
             ) : (
               <Link
-                to="/auth"
+                href="/auth"
                 className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:border-accent hover:text-accent transition-all duration-300"
               >
                 <User className="w-4 h-4" />
@@ -126,19 +143,19 @@ const Header = () => {
       >
         <nav className="flex flex-col items-center justify-center h-full gap-8">
           <Link
-            to="/floor"
+            href="/floor"
             onClick={() => setMobileMenuOpen(false)}
             className={`heading-display text-3xl transition-colors duration-300 ${
-              location.pathname === '/floor' ? 'text-accent' : 'text-foreground hover:text-accent'
+              pathname === '/floor' ? 'text-accent' : 'text-foreground hover:text-accent'
             }`}
           >
             The Floor
           </Link>
           <Link
-            to="/vault"
+            href="/vault"
             onClick={() => setMobileMenuOpen(false)}
             className={`heading-display text-3xl transition-colors duration-300 ${
-              location.pathname === '/vault' ? 'text-accent' : 'text-foreground hover:text-accent'
+              pathname === '/vault' ? 'text-accent' : 'text-foreground hover:text-accent'
             }`}
           >
             The Vault
@@ -155,7 +172,7 @@ const Header = () => {
             </button>
           ) : (
             <Link
-              to="/auth"
+              href="/auth"
               onClick={() => setMobileMenuOpen(false)}
               className="ui-label text-accent hover:text-accent/80 transition-colors mt-8"
             >

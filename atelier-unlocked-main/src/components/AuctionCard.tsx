@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Lock, Unlock } from 'lucide-react';
 import type { Auction } from '@/types/database';
 import { useCountdown } from '@/hooks/useCountdown';
@@ -23,7 +23,7 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
 
   return (
     <Link 
-      to={`/piece/${auction.id}`}
+      href={`/piece/${auction.id}`}
       className="masonry-item group block opacity-0 animate-fade-up"
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -34,6 +34,8 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
             src={imageUrl}
             alt={auction.title}
             className="w-full h-full object-cover transition-transform duration-700 ease-luxury group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
           />
           
           {/* Overlay Gradient */}

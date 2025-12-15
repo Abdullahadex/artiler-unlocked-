@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/analytics/dashboard/route": "app/api/analytics/dashboard/route.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/api/bids/place/route": "app/api/bids/place/route.js",
+  "/api/cron/auction-end/route": "app/api/cron/auction-end/route.js",
+  "/api/email/send/route": "app/api/email/send/route.js",
+  "/api/stripe/confirm-payment/route": "app/api/stripe/confirm-payment/route.js",
+  "/api/stripe/create-payment-intent/route": "app/api/stripe/create-payment-intent/route.js",
+  "/api/webhooks/stripe/route": "app/api/webhooks/stripe/route.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
+  "/api/analytics/track/route": "app/api/analytics/track/route.js",
+  "/floor/page": "app/floor/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/page": "app/page.js",
+  "/auth/page": "app/auth/page.js",
+  "/piece/[id]/page": "app/piece/[id]/page.js",
+  "/privacy/page": "app/privacy/page.js",
+  "/terms/page": "app/terms/page.js",
+  "/vault/page": "app/vault/page.js"
+}

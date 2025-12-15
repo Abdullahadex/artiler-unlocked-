@@ -32,18 +32,22 @@ export const usePlaceBid = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Must be logged in to place a bid');
 
-      const { data, error } = await supabase
-        .from('bids')
-        .insert({
-          auction_id: auctionId,
-          user_id: user.id,
-          amount,
-        })
-        .select()
-        .single();
+      // Use API route for better validation and rate limiting
+      const response = await fetch('/api/bids/place', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ auctionId, amount }),
+      });
 
-      if (error) throw error;
-      return data;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to place bid');
+      }
+
+      return result.bid;
     },
     onSuccess: (_, { auctionId }) => {
       queryClient.invalidateQueries({ queryKey: ['bids', auctionId] });

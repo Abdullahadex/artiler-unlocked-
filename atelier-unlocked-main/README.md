@@ -1,73 +1,84 @@
-# Welcome to your Lovable project
+# ATELIER - Luxury Validated by Desire
 
-## Project info
+A luxury auction platform where exclusive pieces are unlocked by collective desire.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Getting Started
 
-## How can I edit this code?
+### Prerequisites
 
-There are several ways of editing your application.
+- Node.js 18+ and npm installed
+- Supabase account and project
 
-**Use Lovable**
+### Installation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+1. Clone the repository:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
+cd atelier-unlocked-main
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Set up environment variables:
+```sh
+cp .env.example .env.local
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Then update `.env.local` with your Supabase credentials:
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+```
+
+4. Run the development server:
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Build for Production
 
-**Use GitHub Codespaces**
+```sh
+npm run build
+npm start
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
+## Technologies
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Supabase** - Backend and authentication
+- **shadcn-ui** - UI component library
+- **Tailwind CSS** - Styling
+- **React Query** - Data fetching and caching
 
-## How can I deploy this project?
+## Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```
+src/
+├── app/              # Next.js app router pages
+│   ├── page.tsx      # Landing page
+│   ├── floor/        # Auction floor
+│   ├── piece/[id]/   # Individual piece details
+│   ├── vault/        # User vault
+│   └── auth/         # Authentication
+├── components/       # React components
+├── contexts/         # React contexts
+├── hooks/           # Custom React hooks
+├── integrations/    # Third-party integrations
+└── types/           # TypeScript types
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Features
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Auction System** - Lock/unlock mechanism based on bidder count
+- **User Authentication** - Sign up and sign in with Supabase
+- **Real-time Bidding** - Place bids on exclusive pieces
+- **User Roles** - Collectors and Designers
+- **Personal Vault** - Track your auctions and acquisitions
