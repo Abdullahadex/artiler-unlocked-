@@ -5,8 +5,8 @@ services:
     plan: starter
     region: oregon
     rootDir: atelier-unlocked-main
-    buildCommand: cd atelier-unlocked-main && npm install && npm run build
-    startCommand: cd atelier-unlocked-main && npm start
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

@@ -1,0 +1,14 @@
+[build]
+  base = "atelier-unlocked-main"
+  command = "npm install && npm run build"
+  publish = "atelier-unlocked-main/.next"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  directory = "netlify/functions"
+

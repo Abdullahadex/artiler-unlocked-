@@ -4,8 +4,9 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    rootDir: atelier-unlocked-main
+    buildCommand: cd atelier-unlocked-main && npm install && npm run build
+    startCommand: cd atelier-unlocked-main && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -48,4 +49,3 @@ services:
       - key: NEXT_PUBLIC_SENTRY_DSN
         sync: false
         optional: true
-
