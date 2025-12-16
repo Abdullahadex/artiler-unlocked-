@@ -80,10 +80,16 @@ export default function Landing() {
       </div>
 
       {/* Corner accents */}
-      <div className="absolute top-8 left-8 w-8 h-8 border-l border-t border-border opacity-30" />
-      <div className="absolute top-8 right-8 w-8 h-8 border-r border-t border-border opacity-30" />
-      <div className="absolute bottom-8 left-8 w-8 h-8 border-l border-b border-border opacity-30" />
-      <div className="absolute bottom-8 right-8 w-8 h-8 border-r border-b border-border opacity-30" />
+      <div className="absolute top-8 left-8 w-8 h-8 border-l border-t border-border opacity-70" />
+      <div className="absolute top-8 right-8 w-8 h-8 border-r border-t border-border opacity-70" />
+      <div className="absolute bottom-8 left-8 w-8 h-8 border-l border-b border-border opacity-70" />
+      <div className="absolute bottom-8 right-8 w-8 h-8 border-r border-b border-border opacity-70" />
+      
+      {/* Edge lines */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-70" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-70" />
+      <div className="absolute top-0 bottom-0 left-0 w-px bg-gradient-to-b from-transparent via-border to-transparent opacity-70" />
+      <div className="absolute top-0 bottom-0 right-0 w-px bg-gradient-to-b from-transparent via-border to-transparent opacity-70" />
     </div>
   );
 }

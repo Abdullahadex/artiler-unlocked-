@@ -45,6 +45,7 @@ export const usePlaceBid = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ auctionId, amount }),
       });
 
