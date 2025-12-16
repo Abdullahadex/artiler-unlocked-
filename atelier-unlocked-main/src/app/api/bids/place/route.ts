@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create response object to hold cookies
-    let response = new NextResponse();
+    const response = new NextResponse();
     
     // Try to get access token from Authorization header (from client-side session)
     const authHeader = request.headers.get('authorization');
