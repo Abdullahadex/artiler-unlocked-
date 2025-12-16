@@ -1,22 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/integrations/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email';
+import type { Database } from '@/integrations/supabase/types';
 
 export const runtime = 'nodejs';
+
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('https://') && url.includes('.supabase.co');
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { auctionId, amount } = await request.json();
 
-    const supabase = await createClient();
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     
-    if (!supabase) {
+    if (!isValidSupabaseUrl(url) || !key || key.length < 20) {
       return NextResponse.json(
         { error: 'Database not configured' },
         { status: 503 }
       );
     }
+
+    // Create response object to hold cookies
+    let response = new NextResponse();
+    
+    // Create Supabase client that reads cookies from the request and sets them on the response
+    const supabase = createServerClient<Database>(url, key, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Set cookies on the response
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    });
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -138,11 +163,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    // Create JSON response with cookies from Supabase
+    const jsonResponse = NextResponse.json({
       success: true,
       bid,
       remaining: rateLimitResult.remaining,
     });
+    
+    // Copy cookies from the Supabase response
+    response.cookies.getAll().forEach((cookie) => {
+      jsonResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    
+    return jsonResponse;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
     console.error('Bid placement error:', error);

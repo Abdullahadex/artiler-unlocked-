@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useAuction } from '@/hooks/useAuctions';
@@ -18,6 +18,7 @@ import type { AuctionStatus } from '@/types/database';
 
 export default function Masterpiece() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { data: auction, isLoading: auctionLoading } = useAuction(id);
   const { data: bids = [], isLoading: bidsLoading } = useBids(id);
@@ -85,6 +86,7 @@ export default function Masterpiece() {
   const handlePlaceBid = async () => {
     if (!user) {
       toast.error('Please sign in to place a bid');
+      router.push('/auth');
       return;
     }
 
@@ -106,6 +108,11 @@ export default function Masterpiece() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
       toast.error(errorMessage);
+      
+      // If it's an auth error, redirect to sign in
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('sign in')) {
+        setTimeout(() => router.push('/auth'), 2000);
+      }
     }
   };
 

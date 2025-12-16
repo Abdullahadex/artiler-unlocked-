@@ -28,7 +28,7 @@ export default function Landing() {
         </div>
 
         {/* Divider */}
-        <div className="w-[2px] h-16 bg-gradient-to-b from-transparent via-foreground/50 to-transparent my-12 opacity-0 animate-fade-up delay-200" />
+        <div className="w-[3px] h-16 bg-gradient-to-b from-transparent via-foreground/70 to-transparent my-12 opacity-0 animate-fade-up delay-200" />
 
         {/* Role Selection */}
         <div className="flex flex-col md:flex-row gap-6 md:gap-12 opacity-0 animate-fade-up delay-400">
