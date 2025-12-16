@@ -51,8 +51,14 @@ export async function POST(request: NextRequest) {
     
     if (accessToken) {
       // If we have an access token, use it to get the user
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-      const tempClient = createSupabaseClient<Database>(url, key);
+      const { createClient } = await import('@supabase/supabase-js');
+      const tempClient = createClient<Database>(url, key, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      });
       const { data: { user: tokenUser }, error: tokenError } = await tempClient.auth.getUser(accessToken);
       user = tokenUser;
       authError = tokenError;
