@@ -1,7 +1,7 @@
 [build]
   base = "atelier-unlocked-main"
   command = "npm install && npm run build"
-  publish = "atelier-unlocked-main/.next"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
