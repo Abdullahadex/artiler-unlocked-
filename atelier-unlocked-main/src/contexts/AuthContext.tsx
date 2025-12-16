@@ -83,7 +83,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, displayName?: string, role: 'collector' | 'designer' = 'collector') => {
     if (!supabase) {
-      return { error: new Error('Authentication not configured') };
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      const errorMsg = !url && !key 
+        ? 'Authentication not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment variables.'
+        : !url 
+        ? 'NEXT_PUBLIC_SUPABASE_URL is missing. Please set it in your environment variables.'
+        : !key 
+        ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing. Please set it in your environment variables.'
+        : 'Authentication not configured. Please check your Supabase environment variables.';
+      return { error: new Error(errorMsg) };
     }
     
     const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : '/';
@@ -113,7 +122,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
-      return { error: new Error('Authentication not configured') };
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      const errorMsg = !url && !key 
+        ? 'Authentication not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment variables.'
+        : !url 
+        ? 'NEXT_PUBLIC_SUPABASE_URL is missing. Please set it in your environment variables.'
+        : !key 
+        ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing. Please set it in your environment variables.'
+        : 'Authentication not configured. Please check your Supabase environment variables.';
+      return { error: new Error(errorMsg) };
     }
     
     const { error } = await supabase.auth.signInWithPassword({

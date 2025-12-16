@@ -21,7 +21,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, signUp, user, refreshProfile } = useAuth();
+  const { signIn, signUp, user, refreshProfile, configured } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -88,6 +88,30 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
+
+  if (!configured) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-md opacity-0 animate-fade-up">
+          <div className="text-center mb-10 p-6 border border-destructive/50 bg-destructive/10 rounded-sm">
+            <h1 className="heading-display text-2xl mb-2 text-destructive">
+              Authentication Not Configured
+            </h1>
+            <p className="ui-caption text-sm mb-4">
+              Supabase environment variables are missing. Please configure:
+            </p>
+            <div className="text-left space-y-2 text-sm font-mono bg-background p-4 rounded border border-border">
+              <div>NEXT_PUBLIC_SUPABASE_URL</div>
+              <div>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</div>
+            </div>
+            <p className="ui-caption text-xs mt-4">
+              In Netlify: Site settings → Environment variables → Add variable
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
