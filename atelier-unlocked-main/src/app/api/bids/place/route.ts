@@ -28,14 +28,13 @@ export async function POST(request: NextRequest) {
     // Create response object to hold cookies
     let response = new NextResponse();
     
-    // Create Supabase client that reads cookies from the request and sets them on the response
+    // Create Supabase client for database operations
     const supabase = createServerClient<Database>(url, key, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Set cookies on the response
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -43,7 +42,26 @@ export async function POST(request: NextRequest) {
       },
     });
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Try to get access token from Authorization header (from client-side session)
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.replace('Bearer ', '') || null;
+    
+    let user = null;
+    let authError = null;
+    
+    if (accessToken) {
+      // If we have an access token, use it to get the user
+      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+      const tempClient = createSupabaseClient<Database>(url, key);
+      const { data: { user: tokenUser }, error: tokenError } = await tempClient.auth.getUser(accessToken);
+      user = tokenUser;
+      authError = tokenError;
+    } else {
+      // Fallback: try to read from cookies using the SSR client
+      const authResult = await supabase.auth.getUser();
+      user = authResult.data.user;
+      authError = authResult.error;
+    }
 
     if (authError || !user) {
       return NextResponse.json(
