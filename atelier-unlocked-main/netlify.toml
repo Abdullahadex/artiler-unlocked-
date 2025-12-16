@@ -1,7 +1,7 @@
 [build]
   base = "atelier-unlocked-main"
   command = "npm install && npm run build"
-  publish = "atelier-unlocked-main/.next"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -11,9 +11,4 @@
 
 [functions]
   directory = "netlify/functions"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
