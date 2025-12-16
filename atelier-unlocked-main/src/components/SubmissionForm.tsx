@@ -10,7 +10,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { useCreateAuction } from '@/hooks/useAuctions';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import { convertToEUR, CURRENCY_NAMES, getCurrencySymbol } from '@/lib/currency';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ImagePreview {
   file: File;
@@ -19,9 +27,10 @@ interface ImagePreview {
 
 export default function SubmissionForm() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const createAuction = useCreateAuction();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabase = getSupabaseClient();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -29,6 +38,7 @@ export default function SubmissionForm() {
     materials: '',
     sizing: '',
     startPrice: '',
+    currency: 'EUR',
     requiredBidders: '3',
     endTime: '',
   });
@@ -41,13 +51,11 @@ export default function SubmissionForm() {
     const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     
     files.forEach((file) => {
-      // Validate file type
       if (!ALLOWED_TYPES.includes(file.type)) {
         toast.error(`${file.name}: Only JPEG, PNG, and WebP images are allowed`);
         return;
       }
 
-      // Validate file size
       if (file.size > MAX_FILE_SIZE) {
         toast.error(`${file.name}: File size must be less than 5MB`);
         return;
@@ -81,15 +89,25 @@ export default function SubmissionForm() {
       return;
     }
 
+    if (profile?.role !== 'designer') {
+      toast.error('Only designers can submit pieces. Please update your role in your vault.');
+      router.push('/vault');
+      return;
+    }
+
     if (images.length === 0) {
       toast.error('Please upload at least one image');
+      return;
+    }
+    
+    if (!supabase) {
+      toast.error('Database not configured');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Upload images to Supabase storage
       const imageUrls: string[] = [];
       
       for (const imagePreview of images) {
@@ -108,7 +126,6 @@ export default function SubmissionForm() {
           throw uploadError;
         }
 
-        // Get public URL
         const { data: { publicUrl } } = supabase
           .storage
           .from('auction-images')
@@ -117,24 +134,57 @@ export default function SubmissionForm() {
         imageUrls.push(publicUrl);
       }
 
-      // Calculate end time (default to 7 days from now if not specified)
-      const endTime = formData.endTime 
-        ? new Date(formData.endTime).toISOString()
-        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const MAX_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const maxEndTime = now + MAX_DURATION_MS;
+      
+      let endTime: string;
+      if (formData.endTime) {
+        const localDate = new Date(formData.endTime);
+        const localDateMs = localDate.getTime();
+        
+        if (isNaN(localDateMs) || localDateMs <= now) {
+          toast.error('End date must be in the future');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if (localDateMs > maxEndTime) {
+          toast.error('Auction duration cannot exceed 3 days');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        endTime = localDate.toISOString();
+      } else {
+        const defaultEndDate = new Date(now + MAX_DURATION_MS);
+        endTime = defaultEndDate.toISOString();
+      }
 
-      // Create auction
-      await createAuction.mutateAsync({
+      const priceInOriginalCurrency = parseFloat(formData.startPrice);
+      if (isNaN(priceInOriginalCurrency) || priceInOriginalCurrency <= 0) {
+        toast.error('Please enter a valid starting price');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const priceInEUR = Math.round(convertToEUR(priceInOriginalCurrency, formData.currency));
+
+      const newAuction = await createAuction.mutateAsync({
         title: formData.title,
         description: formData.description || null,
         materials: formData.materials || null,
         sizing: formData.sizing || null,
         images: imageUrls,
-        startPrice: parseInt(formData.startPrice),
-        requiredBidders: parseInt(formData.requiredBidders),
+        startPrice: priceInEUR,
+        requiredBidders: 3,
         endTime,
       });
 
-      toast.success('Piece submitted successfully! It will appear on The Floor shortly.');
+      toast.success('Piece submitted successfully! Redirecting to The Floor...');
+      
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       router.push('/floor');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit piece. Please try again.';
@@ -146,7 +196,6 @@ export default function SubmissionForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="title" className="ui-label">
           Piece Title *
@@ -161,7 +210,6 @@ export default function SubmissionForm() {
         />
       </div>
 
-      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description" className="ui-label">
           Description
@@ -176,7 +224,6 @@ export default function SubmissionForm() {
         />
       </div>
 
-      {/* Images Upload */}
       <div className="space-y-2">
         <Label className="ui-label">
           Images * (At least 1 required)
@@ -215,7 +262,6 @@ export default function SubmissionForm() {
         <p className="ui-caption">Upload up to 5 images. First image will be the main display.</p>
       </div>
 
-      {/* Materials & Sizing */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="materials" className="ui-label">
@@ -243,56 +289,89 @@ export default function SubmissionForm() {
         </div>
       </div>
 
-      {/* Pricing & Auction Details */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="startPrice" className="ui-label">
-            Starting Price (€) *
-          </Label>
-          <Input
-            id="startPrice"
-            type="number"
-            min="0"
-            value={formData.startPrice}
-            onChange={(e) => setFormData({ ...formData, startPrice: e.target.value })}
-            placeholder="2800"
-            required
-            className="bg-card border-border focus:border-accent"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="requiredBidders" className="ui-label">
-            Required Bidders *
-          </Label>
-          <Input
-            id="requiredBidders"
-            type="number"
-            min="1"
-            max="10"
-            value={formData.requiredBidders}
-            onChange={(e) => setFormData({ ...formData, requiredBidders: e.target.value })}
-            required
-            className="bg-card border-border focus:border-accent"
-          />
-          <p className="ui-caption">Number of unique bidders needed to unlock</p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="endTime" className="ui-label">
-            Auction End Date
-          </Label>
-          <Input
-            id="endTime"
-            type="datetime-local"
-            value={formData.endTime}
-            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-            min={new Date().toISOString().slice(0, 16)}
-            className="bg-card border-border focus:border-accent"
-          />
-          <p className="ui-caption">Defaults to 7 days from now</p>
+      <div className="space-y-6">
+        <div className="p-6 bg-accent/10 border border-accent/30 rounded-sm">
+          <h3 className="heading-display text-xl mb-4 text-accent">Auction Pricing</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="startPrice" className="ui-label text-accent">
+                Starting Bid *
+              </Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    id="startPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.startPrice}
+                    onChange={(e) => setFormData({ ...formData, startPrice: e.target.value })}
+                    placeholder="2800.00"
+                    required
+                    className="bg-card border-accent/50 focus:border-accent text-lg font-serif"
+                  />
+                </div>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                >
+                  <SelectTrigger className="w-32 bg-card border-accent/50 focus:border-accent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CURRENCY_NAMES).map(([code, name]) => (
+                      <SelectItem key={code} value={code}>
+                        {getCurrencySymbol(code)} {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.startPrice && !isNaN(parseFloat(formData.startPrice)) && formData.currency !== 'EUR' && (
+                <p className="ui-caption text-accent">
+                  ≈ €{Math.round(convertToEUR(parseFloat(formData.startPrice), formData.currency)).toLocaleString()} EUR
+                </p>
+              )}
+              <p className="ui-caption">Price will be converted to EUR for display</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="requiredBidders" className="ui-label">
+                Required Bidders
+              </Label>
+              <div className="relative">
+                <Input
+                  id="requiredBidders"
+                  type="number"
+                  value="3"
+                  readOnly
+                  disabled
+                  className="bg-muted border-border text-muted-foreground cursor-not-allowed"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <span className="ui-label text-xs text-muted-foreground">Fixed</span>
+                </div>
+              </div>
+              <p className="ui-caption">3 unique bidders required to unlock (compulsory)</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endTime" className="ui-label">
+                Auction End Date
+              </Label>
+              <Input
+                id="endTime"
+                type="datetime-local"
+                value={formData.endTime}
+                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                min={new Date().toISOString().slice(0, 16)}
+                max={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                className="bg-card border-border focus:border-accent"
+              />
+              <p className="ui-caption">Maximum 3 days from now (defaults to 3 days)</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Submit Button */}
       <div className="flex gap-4 pt-4">
         <Button
           type="submit"

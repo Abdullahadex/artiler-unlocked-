@@ -33,9 +33,10 @@ const Header = () => {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link 
             href="/" 
-            className="font-serif text-xl tracking-wide text-foreground hover:text-accent transition-colors duration-500"
+            className="font-serif text-xl tracking-wide text-foreground hover:text-accent transition-colors duration-500 flex items-center gap-2.5 group"
           >
-            ATELIER
+            <span className="group-hover:text-accent transition-colors">ATELIER</span>
+            <span className="text-sm font-sans font-medium tracking-[0.2em] text-foreground/80 group-hover:text-accent transition-colors uppercase">UNLOCKED</span>
           </Link>
 
           {/* Desktop Nav */}

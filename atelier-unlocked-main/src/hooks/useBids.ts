@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Bid } from '@/types/database';
 
 export const useBids = (auctionId: string | undefined) => {
+  const supabase = getSupabaseClient();
+  
   return useQuery({
     queryKey: ['bids', auctionId],
     queryFn: async () => {
-      if (!auctionId) return [];
+      if (!auctionId || !supabase) return [];
       
       const { data, error } = await supabase
         .from('bids')
@@ -26,9 +28,14 @@ export const useBids = (auctionId: string | undefined) => {
 
 export const usePlaceBid = () => {
   const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
 
   return useMutation({
     mutationFn: async ({ auctionId, amount }: { auctionId: string; amount: number }) => {
+      if (!supabase) {
+        throw new Error('Database not configured');
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Must be logged in to place a bid');
 

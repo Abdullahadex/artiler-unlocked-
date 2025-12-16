@@ -5,6 +5,14 @@ export async function GET() {
   try {
     const supabase = await createClient();
     
+    if (!supabase) {
+      return NextResponse.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        database: 'not_configured',
+      });
+    }
+    
     // Simple health check
     const { error } = await supabase.from('auctions').select('id').limit(1);
 

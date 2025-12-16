@@ -5,23 +5,63 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js/dist/module/index.js';
 import type { Database } from './types';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+let cachedClient: ReturnType<typeof createSupabaseClient<Database>> | null = null;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    'Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your .env.local file.'
-  );
+/**
+ * Check if a string is a valid Supabase URL (must start with https://)
+ */
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('https://') && url.includes('.supabase.co');
 }
 
-export const supabase = createSupabaseClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
+/**
+ * Lazily create a Supabase browser client if public env vars are configured.
+ * This avoids failing the build/prerender when env vars aren't set yet.
+ */
+export function getSupabaseClient() {
+  if (cachedClient) return cachedClient;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  
+  // Check for valid URL and non-empty key
+  if (!isValidSupabaseUrl(url) || !key || key.length < 20) {
+    return null;
+  }
+
+  cachedClient = createSupabaseClient<Database>(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-  }
-);
+  });
+
+  return cachedClient;
+}
+
+function createUnconfiguredSupabaseProxy(): ReturnType<typeof createSupabaseClient<Database>> {
+  const message =
+    'Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.';
+
+  const makeProxy = (path: string) =>
+    new Proxy(function () {}, {
+      get(_target, prop) {
+        // Allow basic introspection without throwing
+        if (prop === Symbol.toStringTag) return 'SupabaseProxy';
+        if (prop === 'toString') return () => `[${path}]`;
+        if (prop === 'valueOf') return () => null;
+        return makeProxy(`${path}.${String(prop)}`);
+      },
+      apply() {
+        throw new Error(message);
+      },
+    });
+
+  return makeProxy('supabase') as unknown as ReturnType<typeof createSupabaseClient<Database>>;
+}
+
+// Back-compat: existing code imports `supabase`. It won't throw during build/import.
+export const supabase: ReturnType<typeof createSupabaseClient<Database>> =
+  getSupabaseClient() ?? createUnconfiguredSupabaseProxy();

@@ -12,20 +12,31 @@ export default function Floor() {
   const { data: auctions, isLoading, error } = useAuctions();
 
   const filteredAuctions = (auctions || []).filter(auction => {
+    // Always exclude SOLD and VOID auctions
+    if (auction.status === 'SOLD' || auction.status === 'VOID') {
+      return false;
+    }
+
     const now = Date.now();
     const endTime = new Date(auction.end_time).getTime();
+    
+    // Handle invalid dates
+    if (isNaN(endTime)) {
+      return false;
+    }
+    
     const hoursLeft = (endTime - now) / (1000 * 60 * 60);
     const isExpired = endTime < now;
     
-    // Hide expired/SOLD/VOID auctions from default 'all' view
-    // Only show active auctions (LOCKED, UNLOCKED) that haven't expired
-    const isActive = !isExpired && auction.status !== 'SOLD' && auction.status !== 'VOID';
+    // For LOCKED auctions, always show them (they're newly uploaded)
+    // For UNLOCKED auctions, only show if not expired
+    const isActive = auction.status === 'LOCKED' || (auction.status === 'UNLOCKED' && !isExpired);
     
     switch (filter) {
       case 'live':
         return isActive;
       case 'ending':
-        return isActive && hoursLeft > 0 && hoursLeft <= 2;
+        return isActive && !isExpired && hoursLeft > 0 && hoursLeft <= 2;
       case 'unlocked':
         return auction.status === 'UNLOCKED' && isActive;
       default: // 'all' - show all active auctions (including newly uploaded LOCKED ones)

@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
+  
+  if (!supabase) {
+    console.error('Database not configured for webhook processing');
+    return NextResponse.json({ received: true, warning: 'Database not configured' });
+  }
 
   switch (event.type) {
     case 'payment_intent.succeeded': {

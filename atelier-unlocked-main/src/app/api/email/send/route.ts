@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
+    
+    if (!supabase) {
+      console.warn('Database not configured. Email auth skipped.');
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Database not configured' 
+      });
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

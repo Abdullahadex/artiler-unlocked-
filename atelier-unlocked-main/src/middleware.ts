@@ -1,6 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+/**
+ * Check if a string is a valid Supabase URL
+ */
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('https://') && url.includes('.supabase.co');
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -11,8 +19,8 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase environment variables in middleware');
+  // Skip Supabase auth if not properly configured
+  if (!isValidSupabaseUrl(supabaseUrl) || !supabaseKey || supabaseKey.length < 20) {
     return response;
   }
 

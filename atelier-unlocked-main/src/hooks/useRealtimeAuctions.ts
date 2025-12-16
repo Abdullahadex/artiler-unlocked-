@@ -2,13 +2,19 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useRealtimeAuctions() {
   const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
+    // Skip realtime subscriptions if Supabase is not configured
+    if (!supabase) {
+      return;
+    }
+    
     const channel: RealtimeChannel = supabase
       .channel('auctions-changes')
       .on(
@@ -48,6 +54,6 @@ export function useRealtimeAuctions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, supabase]);
 }
 

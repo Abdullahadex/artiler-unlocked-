@@ -6,6 +6,12 @@ export async function POST(request: NextRequest) {
     const { name, properties } = await request.json();
 
     const supabase = await createClient();
+    
+    if (!supabase) {
+      // Analytics silently succeeds when Supabase is not configured
+      return NextResponse.json({ success: true });
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
 
     // Store analytics event in database

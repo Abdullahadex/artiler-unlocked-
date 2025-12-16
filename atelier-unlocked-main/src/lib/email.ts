@@ -1,5 +1,3 @@
-import { createClient } from '@/integrations/supabase/server';
-
 export type EmailTemplate = 
   | 'bidConfirmation'
   | 'outbid'

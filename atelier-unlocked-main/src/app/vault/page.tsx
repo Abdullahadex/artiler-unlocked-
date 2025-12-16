@@ -2,19 +2,42 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { User, Package, TrendingUp, Clock, Award } from 'lucide-react';
+import { User, Package, TrendingUp, Clock, Award, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuctions } from '@/hooks/useAuctions';
+import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import type { Auction } from '@/types/database';
 import SubmissionForm from '@/components/SubmissionForm';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useDeleteAuction } from '@/hooks/useAuctions';
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Vault() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
   const { data: auctions, isLoading: auctionsLoading } = useAuctions();
+  const supabase = getSupabaseClient();
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      refreshProfile();
+    }
+  }, [user, authLoading, refreshProfile]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -38,22 +61,60 @@ export default function Vault() {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background pt-24 pb-16">
+        <div className="container mx-auto px-6">
+          <div className="text-center py-16">
+            <p className="heading-editorial text-xl text-muted-foreground mb-4">Please sign in to access your vault</p>
+            <Link href="/auth" className="ui-label text-accent hover:text-accent/80">
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isDesigner = profile?.role === 'designer';
 
-  // Filter auctions based on user role
-  const soldAuctions = (auctions || []).filter(a => a.status === 'SOLD');
-  const activeAuctions = (auctions || []).filter(a => a.status === 'LOCKED' || a.status === 'UNLOCKED');
+  const { data: userBids, isLoading: bidsLoading } = useQuery<string[]>({
+    queryKey: ['user-bids', user?.id],
+    queryFn: async (): Promise<string[]> => {
+      if (!user?.id || !supabase) return [];
+      const { data, error } = await supabase
+        .from('bids')
+        .select('auction_id')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return (data || []).map(b => b.auction_id);
+    },
+    enabled: !!user?.id && !isDesigner && !!supabase,
+  });
+
   const designerAuctions = isDesigner 
     ? (auctions || []).filter(a => a.designer_id === user.id)
     : [];
 
+  const collectorBidAuctionIds = new Set(userBids || []);
+  const collectorActiveAuctions = !isDesigner
+    ? (auctions || []).filter(a => 
+        collectorBidAuctionIds.has(a.id) && 
+        (a.status === 'LOCKED' || a.status === 'UNLOCKED')
+      )
+    : [];
+  const collectorAcquisitions = !isDesigner
+    ? (auctions || []).filter(a => 
+        collectorBidAuctionIds.has(a.id) && 
+        a.status === 'SOLD'
+      )
+    : [];
+
   const collectorStats = {
-    totalBids: 0, // Would come from a bids query
-    activeBids: 0,
-    acquisitions: soldAuctions.length,
-    watching: activeAuctions.length,
+    totalBids: userBids?.length || 0,
+    activeBids: collectorActiveAuctions.length,
+    acquisitions: collectorAcquisitions.length,
+    watching: collectorActiveAuctions.length,
   };
 
   const designerStats = {
@@ -67,7 +128,7 @@ export default function Vault() {
     <div className="min-h-screen bg-background pt-24 pb-16">
       <div className="container mx-auto px-6">
         {/* Profile Header */}
-        <div className="mb-12 opacity-0 animate-fade-up">
+        <div className="mb-12 animate-fade-up">
           <div className="flex items-start gap-6">
             <div className="w-20 h-20 rounded-full bg-card border border-border flex items-center justify-center overflow-hidden">
               {profile?.avatar_url ? (
@@ -78,10 +139,12 @@ export default function Vault() {
             </div>
             <div className="flex-1">
               <h1 className="heading-display text-3xl md:text-4xl mb-2">
-                {profile?.display_name || 'The Vault'}
+                {isDesigner ? `${profile?.display_name || 'Designer'}'s Studio` : (profile?.display_name || 'The Vault')}
               </h1>
               <p className="ui-caption mb-2">
-                Your personal sanctuary at ATELIER
+                {isDesigner 
+                  ? 'Your creative workspace at ATELIER' 
+                  : 'Your personal sanctuary at ATELIER'}
               </p>
               <span className={`inline-block px-3 py-1 text-xs rounded-full ${
                 isDesigner 
@@ -90,12 +153,17 @@ export default function Vault() {
               }`}>
                 {isDesigner ? 'Designer' : 'Collector'}
               </span>
+              {isDesigner && (
+                <p className="ui-caption mt-3 text-accent/80">
+                  Upload and manage your exclusive pieces
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 opacity-0 animate-fade-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 animate-fade-up delay-100">
           {isDesigner ? (
             <>
               <StatCard icon={Package} label="Total Pieces" value={designerStats.totalPieces.toString()} />
@@ -118,9 +186,9 @@ export default function Vault() {
         </div>
 
         {/* Tabs Content */}
-        <div className="opacity-0 animate-fade-up delay-200">
+        <div className="animate-fade-up delay-200">
           {isDesigner ? (
-            <Tabs defaultValue="portfolio" className="w-full">
+            <Tabs defaultValue="submit" className="w-full">
               <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-8 h-auto pb-0">
                 <TabsTrigger 
                   value="portfolio" 
@@ -143,7 +211,16 @@ export default function Vault() {
               </TabsList>
               
               <TabsContent value="portfolio" className="pt-8">
-                <ItemGrid items={designerAuctions} emptyText="No pieces in portfolio" isLoading={auctionsLoading} />
+                <div className="mb-6">
+                  <h2 className="heading-display text-2xl mb-2">Your Portfolio</h2>
+                  <p className="ui-caption">All your pieces currently on The Floor</p>
+                </div>
+                <ItemGrid 
+                  items={designerAuctions} 
+                  emptyText="No pieces in portfolio yet. Submit your first piece to get started!" 
+                  isLoading={auctionsLoading}
+                  showDelete={true}
+                />
               </TabsContent>
               
               <TabsContent value="analytics" className="pt-8">
@@ -155,6 +232,12 @@ export default function Vault() {
               </TabsContent>
               
               <TabsContent value="submit" className="pt-8">
+                <div className="mb-8 p-6 bg-accent/5 border border-accent/20 rounded-sm">
+                  <h2 className="heading-display text-2xl mb-2">Submit Your Piece</h2>
+                  <p className="ui-caption">
+                    Upload your exclusive piece to The Floor. Set your starting bid and watch collectors unlock it through their desire.
+                  </p>
+                </div>
                 <SubmissionForm />
               </TabsContent>
             </Tabs>
@@ -173,15 +256,45 @@ export default function Vault() {
                 >
                   Acquisitions
                 </TabsTrigger>
+                {!isDesigner && (
+                  <TabsTrigger 
+                    value="become-designer" 
+                    className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
+                  >
+                    Become Designer
+                  </TabsTrigger>
+                )}
               </TabsList>
               
               <TabsContent value="watching" className="pt-8">
-                <ItemGrid items={activeAuctions} emptyText="No live auctions" isLoading={auctionsLoading} />
+                <div className="mb-6">
+                  <h2 className="heading-display text-2xl mb-2">Your Active Bids</h2>
+                  <p className="ui-caption">Auctions you're currently bidding on</p>
+                </div>
+                <ItemGrid 
+                  items={collectorActiveAuctions} 
+                  emptyText="You haven't placed any bids yet. Browse The Floor to find pieces you desire." 
+                  isLoading={auctionsLoading || bidsLoading} 
+                />
               </TabsContent>
               
               <TabsContent value="acquisitions" className="pt-8">
-                <ItemGrid items={soldAuctions} emptyText="No acquisitions yet" isLoading={auctionsLoading} />
+                <div className="mb-6">
+                  <h2 className="heading-display text-2xl mb-2">Your Acquisitions</h2>
+                  <p className="ui-caption">Pieces you've successfully acquired</p>
+                </div>
+                <ItemGrid 
+                  items={collectorAcquisitions} 
+                  emptyText="No acquisitions yet. Win an auction to see your pieces here." 
+                  isLoading={auctionsLoading || bidsLoading} 
+                />
               </TabsContent>
+
+              {!isDesigner && (
+                <TabsContent value="become-designer" className="pt-8">
+                  <BecomeDesignerSection />
+                </TabsContent>
+              )}
             </Tabs>
           )}
         </div>
@@ -190,7 +303,6 @@ export default function Vault() {
   );
 }
 
-// Stat Card Component
 interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -211,9 +323,34 @@ interface ItemGridProps {
   items: Auction[];
   emptyText: string;
   isLoading?: boolean;
+  showDelete?: boolean; // Only show delete for designer's own portfolio
 }
 
-const ItemGrid = ({ items, emptyText, isLoading }: ItemGridProps) => {
+const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridProps) => {
+  const deleteAuction = useDeleteAuction();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [auctionToDelete, setAuctionToDelete] = useState<Auction | null>(null);
+
+  const handleDeleteClick = (e: React.MouseEvent, auction: Auction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAuctionToDelete(auction);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!auctionToDelete) return;
+    
+    try {
+      await deleteAuction.mutateAsync(auctionToDelete.id);
+      toast.success('Piece removed from The Floor');
+      setDeleteConfirmOpen(false);
+      setAuctionToDelete(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete piece';
+      toast.error(errorMessage);
+    }
+  };
   if (isLoading) {
     return (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -242,40 +379,245 @@ const ItemGrid = ({ items, emptyText, isLoading }: ItemGridProps) => {
   }
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {items.map((item) => (
-        <Link
-          key={item.id}
-          href={`/piece/${item.id}`}
-          className="group bg-card border border-border rounded-sm overflow-hidden hover:border-accent transition-colors duration-300"
-        >
-          <div className="aspect-[4/3] overflow-hidden">
-            <img
-              src={item.images?.[0] || '/placeholder.svg'}
-              alt={item.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
+    <>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="group bg-card border border-border rounded-sm overflow-hidden hover:border-accent transition-colors duration-300 relative"
+          >
+            <Link
+              href={`/piece/${item.id}`}
+              className="block"
+            >
+              <div className="aspect-[4/3] overflow-hidden">
+                <img
+                  src={item.images?.[0] || '/placeholder.svg'}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4">
+                <span className="ui-label text-muted-foreground">
+                  {item.designer?.display_name || 'Unknown Designer'}
+                </span>
+                <h3 className="font-serif text-lg mt-1 group-hover:text-accent transition-colors">
+                  {item.title}
+                </h3>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
+                  <span className="font-serif">€{item.current_price.toLocaleString()}</span>
+                  <span className={`ui-label text-xs ${
+                    item.status === 'SOLD' ? 'text-accent' : 
+                    item.status === 'UNLOCKED' ? 'text-accent' : 
+                    'text-muted-foreground'
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+            </Link>
+            
+            {showDelete && item.status === 'LOCKED' && (
+              <button
+                onClick={(e) => handleDeleteClick(e, item)}
+                className="absolute top-2 right-2 w-8 h-8 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                title="Remove from The Floor"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <div className="p-4">
-            <span className="ui-label text-muted-foreground">
-              {item.designer?.display_name || 'Unknown Designer'}
-            </span>
-            <h3 className="font-serif text-lg mt-1 group-hover:text-accent transition-colors">
-              {item.title}
-            </h3>
-            <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
-              <span className="font-serif">€{item.current_price.toLocaleString()}</span>
-              <span className={`ui-label text-xs ${
-                item.status === 'SOLD' ? 'text-accent' : 
-                item.status === 'UNLOCKED' ? 'text-accent' : 
-                'text-muted-foreground'
-              }`}>
-                {item.status}
-              </span>
-            </div>
-          </div>
+        ))}
+      </div>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Piece from The Floor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove "{auctionToDelete?.title}" from The Floor? This action cannot be undone. The piece will be permanently removed and will no longer be visible to collectors.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAuctionToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteAuction.isPending}
+            >
+              {deleteAuction.isPending ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+const BecomeDesignerSection = () => {
+  const { user, profile, loading, refreshProfile } = useAuth();
+  const router = useRouter();
+  const supabase = getSupabaseClient();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleBecomeDesigner = async () => {
+    if (!user) {
+      toast.error('Please sign in to become a designer');
+      return;
+    }
+
+    if (!supabase) {
+      toast.error('Database connection not configured. Please check your environment variables.');
+      console.error('Supabase client is null - check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+      return;
+    }
+
+    if (profile?.role === 'designer') {
+      toast.info('You are already a designer!');
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Your session has expired. Please sign in again.');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      // First check if profile exists and get current role
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      // maybeSingle() returns null data (not an error) when no row is found
+      // Empty error objects {} are normal and mean "not found"
+      if (checkError) {
+        // Check if it's a real error or just an empty object (which means "not found")
+        const hasErrorContent = checkError?.message || checkError?.code || checkError?.details || checkError?.hint;
+        
+        if (hasErrorContent) {
+          // Real error - extract info and throw if needed
+          const errorInfo = {
+            message: checkError.message || 'Unknown error',
+            code: checkError.code || 'UNKNOWN',
+          };
+          
+          // Only throw if it's not a "not found" error
+          if (checkError.code !== 'PGRST116' && !checkError.message?.includes('not found')) {
+            throw new Error(`Failed to check profile: ${errorInfo.message} (Code: ${errorInfo.code})`);
+          }
+        }
+        // Empty error object is normal for "not found" cases
+      }
+
+      let result;
+      
+      if (!existingProfile) {
+        // Profile doesn't exist, create it
+        result = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            display_name: user.email?.split('@')[0] || 'User',
+            role: 'designer',
+          })
+          .select()
+          .single();
+      } else {
+        // Profile exists, update it
+        result = await supabase
+          .from('profiles')
+          .update({ role: 'designer' })
+          .eq('id', user.id)
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        // Safely extract error information - handle empty objects
+        const errorObj = result.error;
+        const errorDetails = {
+          message: errorObj?.message || 'Unknown error',
+          code: errorObj?.code || 'UNKNOWN',
+          details: errorObj?.details || null,
+          hint: errorObj?.hint || null,
+          status: errorObj?.status || null,
+          statusText: errorObj?.statusText || null,
+        };
+        
+        // Provide a helpful error message
+        let errorMessage = 'Failed to update role. ';
+        if (errorDetails.code === '42501' || errorDetails.message?.includes('permission')) {
+          errorMessage += 'Permission denied. You may not have permission to update your profile.';
+        } else if (errorDetails.code === '23505') {
+          errorMessage += 'Profile already exists. Please refresh the page.';
+        } else if (errorDetails.message && errorDetails.message !== 'Unknown error') {
+          errorMessage += errorDetails.message;
+        } else {
+          errorMessage += 'An unknown error occurred. Please check your database connection and permissions.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      if (!result.data) {
+        throw new Error('Update succeeded but no data returned');
+      }
+
+      console.log('Successfully updated profile:', result.data);
+
+      // Refresh the profile in context
+      await refreshProfile();
+      
+      toast.success('You are now a designer! You can now submit pieces.');
+    } catch (error) {
+      console.error('Failed to update role - Full error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : `Failed to update role: ${JSON.stringify(error)}`;
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return <Skeleton className="h-64" />;
+  }
+
+  if (profile?.role === 'designer') {
+    return (
+      <div className="text-center py-16 border border-dashed border-accent/50 rounded-sm bg-accent/5">
+        <Sparkles className="w-12 h-12 text-accent mx-auto mb-4" />
+        <p className="heading-editorial text-xl text-accent mb-2">You are a Designer!</p>
+        <p className="ui-caption mb-4">You can now submit and sell your pieces on The Floor.</p>
+        <Link href="/vault?tab=submit">
+          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            Submit Your First Piece
+          </Button>
         </Link>
-      ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-16 border border-dashed border-border rounded-sm">
+      <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+      <p className="heading-editorial text-xl mb-2">Become a Designer</p>
+      <p className="ui-caption mb-6 max-w-md mx-auto">
+        As a designer, you can upload and sell your exclusive pieces on The Floor. 
+        Your pieces will be available for collectors to bid on once they unlock.
+      </p>
+      <Button
+        onClick={handleBecomeDesigner}
+        disabled={isUpdating}
+        className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6"
+      >
+        {isUpdating ? 'Updating...' : 'Become a Designer'}
+      </Button>
     </div>
   );
 };

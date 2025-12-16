@@ -1,12 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Auction } from '@/types/database';
 import type { TablesInsert } from '@/integrations/supabase/types';
 
 export const useAuctions = () => {
+  const supabase = getSupabaseClient();
+  
   return useQuery({
     queryKey: ['auctions'],
     queryFn: async () => {
+      if (!supabase) {
+        return [] as Auction[];
+      }
+      
       const { data, error } = await supabase
         .from('auctions')
         .select(`
@@ -18,16 +24,18 @@ export const useAuctions = () => {
       if (error) throw error;
       return data as Auction[];
     },
-    refetchInterval: 30000, // Refetch every 30 seconds to catch new uploads
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 };
 
 export const useAuction = (id: string | undefined) => {
+  const supabase = getSupabaseClient();
+  
   return useQuery({
     queryKey: ['auction', id],
     queryFn: async () => {
-      if (!id) return null;
+      if (!id || !supabase) return null;
       
       const { data, error } = await supabase
         .from('auctions')
@@ -58,10 +66,15 @@ interface CreateAuctionInput {
 
 export const useCreateAuction = () => {
   const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
 
   return {
     ...useMutation({
       mutationFn: async (input: CreateAuctionInput) => {
+        if (!supabase) {
+          throw new Error('Database not configured');
+        }
+        
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -95,11 +108,70 @@ export const useCreateAuction = () => {
         if (error) throw error;
         return data as Auction;
       },
-      onSuccess: () => {
-        // Invalidate and refetch auctions
-        queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      onSuccess: async (newAuction) => {
+        queryClient.setQueryData(['auctions'], (old: Auction[] | undefined) => {
+          if (!old) return [newAuction];
+          const exists = old.some(a => a.id === newAuction.id);
+          if (exists) return old;
+          return [newAuction, ...old];
+        });
+        await queryClient.refetchQueries({ queryKey: ['auctions'] });
       },
     }),
     supabase,
   };
+};
+
+export const useDeleteAuction = () => {
+  const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
+
+  return useMutation({
+    mutationFn: async (auctionId: string) => {
+      if (!supabase) {
+        throw new Error('Database not configured');
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('You must be signed in to delete an auction');
+      }
+
+      const { data: auction, error: fetchError } = await supabase
+        .from('auctions')
+        .select('id, designer_id, status, unique_bidder_count')
+        .eq('id', auctionId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!auction) throw new Error('Auction not found');
+      if (auction.designer_id !== user.id) {
+        throw new Error('You can only delete your own auctions');
+      }
+
+      if (auction.status !== 'LOCKED') {
+        throw new Error('Can only delete LOCKED auctions. Once bids are placed, auctions cannot be removed.');
+      }
+
+      if (auction.unique_bidder_count > 0) {
+        throw new Error('Cannot delete auction with existing bids');
+      }
+
+      const { error } = await supabase
+        .from('auctions')
+        .delete()
+        .eq('id', auctionId);
+
+      if (error) throw error;
+      return auctionId;
+    },
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData(['auctions'], (old: Auction[] | undefined) => {
+        if (!old) return [];
+        return old.filter(a => a.id !== deletedId);
+      });
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
 };

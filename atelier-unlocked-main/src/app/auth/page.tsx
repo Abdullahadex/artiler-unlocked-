@@ -17,10 +17,11 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [role, setRole] = useState<'collector' | 'designer'>('collector');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, refreshProfile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function Auth() {
     
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, displayName);
+        const { error } = await signUp(email, password, displayName, role);
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('This email is already registered. Please sign in.');
@@ -64,7 +65,11 @@ export default function Auth() {
           }
         } else {
           toast.success('Account created successfully!');
-          router.push('/floor');
+          // Wait a moment for the profile to be created by the trigger, then refresh
+          setTimeout(async () => {
+            await refreshProfile();
+            router.push('/vault');
+          }, 1000);
         }
       } else {
         const { error } = await signIn(email, password);
@@ -101,19 +106,50 @@ export default function Auth() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {isSignUp && (
-            <div className="space-y-2">
-              <Label htmlFor="displayName" className="ui-label">
-                Display Name
-              </Label>
-              <Input
-                id="displayName"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
-                className="bg-card border-border focus:border-accent"
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="displayName" className="ui-label">
+                  Display Name
+                </Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Your name"
+                  className="bg-card border-border focus:border-accent"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="ui-label">I want to join as</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setRole('collector')}
+                    className={`p-4 border-2 rounded-sm transition-all ${
+                      role === 'collector'
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border hover:border-accent/50'
+                    }`}
+                  >
+                    <p className="ui-label mb-1">Collector</p>
+                    <p className="ui-caption text-xs">Browse and bid on pieces</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('designer')}
+                    className={`p-4 border-2 rounded-sm transition-all ${
+                      role === 'designer'
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border hover:border-accent/50'
+                    }`}
+                  >
+                    <p className="ui-label mb-1">Designer</p>
+                    <p className="ui-caption text-xs">Upload and sell your pieces</p>
+                  </button>
+                </div>
+              </div>
+            </>
           )}
 
           <div className="space-y-2">

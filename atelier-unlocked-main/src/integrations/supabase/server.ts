@@ -1,17 +1,30 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export async function createClient() {
-  const cookieStore = await cookies();
+/**
+ * Check if a string is a valid Supabase URL (must start with https://)
+ */
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('https://') && url.includes('.supabase.co');
+}
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-    throw new Error('Missing Supabase environment variables');
+export async function createClient(): Promise<SupabaseClient<Database> | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  
+  // Check for valid URL and non-empty key
+  if (!isValidSupabaseUrl(url) || !key || key.length < 20) {
+    return null;
   }
 
+  const cookieStore = await cookies();
+
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    url,
+    key,
     {
       cookies: {
         getAll() {

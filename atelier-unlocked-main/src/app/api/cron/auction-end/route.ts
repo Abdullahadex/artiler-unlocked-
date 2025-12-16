@@ -12,6 +12,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createClient();
+    
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Get expired UNLOCKED auctions
     const { data: unlockedAuctions, error: unlockedError } = await supabase
