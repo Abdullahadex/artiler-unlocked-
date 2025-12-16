@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js/dist/module/index.js';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email';
 import type { Database } from '@/integrations/supabase/types';
