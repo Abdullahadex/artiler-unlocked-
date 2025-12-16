@@ -85,7 +85,8 @@ CRON_SECRET=your_random_secret
 
 **Vercel:**
 - Already configured in `vercel.json`
-- Runs every 5 minutes
+- **Hobby plan:** runs once per day (Vercel Hobby only supports daily cron)
+- **Pro plan:** you can increase frequency (e.g. every 5 minutes) for more accurate auction endings
 - Set `CRON_SECRET` in environment variables
 
 **Other Platforms:**
