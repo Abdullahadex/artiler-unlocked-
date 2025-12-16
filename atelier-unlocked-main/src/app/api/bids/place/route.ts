@@ -14,7 +14,7 @@ function isValidSupabaseUrl(url: string | undefined): url is string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { auctionId, amount } = await request.json();
+    const { auctionId, amount, refreshToken } = await request.json();
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -29,41 +29,50 @@ export async function POST(request: NextRequest) {
     // Create response object to hold cookies
     let response = new NextResponse();
     
-    // Create Supabase client for database operations
-    const supabase = createServerClient<Database>(url, key, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    });
-    
     // Try to get access token from Authorization header (from client-side session)
     const authHeader = request.headers.get('authorization');
     const accessToken = authHeader?.replace('Bearer ', '') || null;
     
     let user = null;
     let authError = null;
+    let supabase: ReturnType<typeof createServerClient<Database>> | ReturnType<typeof createClient<Database>>;
     
     if (accessToken) {
-      // If we have an access token, use it to get the user
-      const tempClient = createClient<Database>(url, key, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+      // If we have an access token, create a client and set the session
+      supabase = createClient<Database>(url, key);
+      
+      // Set the session with both tokens so RLS policies work
+      if (refreshToken) {
+        const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (sessionError) {
+          authError = sessionError;
+        } else if (session?.user) {
+          user = session.user;
+        }
+      } else {
+        // Fallback: just verify the token
+        const { data: { user: tokenUser }, error: tokenError } = await supabase.auth.getUser(accessToken);
+        user = tokenUser;
+        authError = tokenError;
+      }
+    } else {
+      // Fallback: use SSR client with cookies
+      supabase = createServerClient<Database>(url, key, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
           },
         },
       });
-      const { data: { user: tokenUser }, error: tokenError } = await tempClient.auth.getUser(accessToken);
-      user = tokenUser;
-      authError = tokenError;
-    } else {
-      // Fallback: try to read from cookies using the SSR client
       const authResult = await supabase.auth.getUser();
       user = authResult.data.user;
       authError = authResult.error;

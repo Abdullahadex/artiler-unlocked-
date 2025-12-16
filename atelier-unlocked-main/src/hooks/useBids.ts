@@ -36,12 +36,13 @@ export const usePlaceBid = () => {
         throw new Error('Database not configured');
       }
       
-      // Get session to access the token
+      // Get session to access the tokens
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('Must be logged in to place a bid');
 
-      // Get the access token to pass to the server
+      // Pass both access and refresh tokens to the server
       const accessToken = session.access_token;
+      const refreshToken = session.refresh_token;
 
       // Use API route for better validation and rate limiting
       const response = await fetch('/api/bids/place', {
@@ -51,7 +52,11 @@ export const usePlaceBid = () => {
           ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
         },
         credentials: 'include',
-        body: JSON.stringify({ auctionId, amount }),
+        body: JSON.stringify({ 
+          auctionId, 
+          amount,
+          refreshToken, // Include refresh token for session setup
+        }),
       });
 
       const result = await response.json();
