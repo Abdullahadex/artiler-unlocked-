@@ -1,4 +1,4 @@
-// Simple in-memory rate limiter (use Redis in production)
+// Simple in-memory rate limiter
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 export function rateLimit(

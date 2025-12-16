@@ -1,6 +1,8 @@
 'use client';
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+// NOTE: Import from the explicit module entrypoint to avoid Next/webpack warnings
+// around Supabase's ESM wrapper default export resolution.
+import { createClient as createSupabaseClient } from '@supabase/supabase-js/dist/module/index.js';
 import type { Database } from './types';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;

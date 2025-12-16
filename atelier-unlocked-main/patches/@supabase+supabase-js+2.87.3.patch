@@ -1,0 +1,13 @@
+diff --git a/node_modules/@supabase/supabase-js/dist/module/index.js b/node_modules/@supabase/supabase-js/dist/module/index.js
+index 52c3817..ca84e24 100644
+--- a/node_modules/@supabase/supabase-js/dist/module/index.js
++++ b/node_modules/@supabase/supabase-js/dist/module/index.js
+@@ -4,6 +4,8 @@ export { PostgrestError, } from '@supabase/postgrest-js';
+ export { FunctionsHttpError, FunctionsFetchError, FunctionsRelayError, FunctionsError, FunctionRegion, } from '@supabase/functions-js';
+ export * from '@supabase/realtime-js';
+ export { default as SupabaseClient } from './SupabaseClient.js';
++// Added default export to satisfy bundlers expecting default
++export default SupabaseClient;
+ /**
+  * Creates a new Supabase Client.
+  *

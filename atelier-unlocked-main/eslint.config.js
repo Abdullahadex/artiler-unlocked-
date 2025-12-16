@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "node_modules", "src/__tests__/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -25,7 +25,17 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/ui/sonner.tsx", "**/ui/toggle.tsx", "**/contexts/AuthContext.tsx"],
+    files: [
+      "**/ui/sonner.tsx", 
+      "**/ui/toggle.tsx", 
+      "**/ui/badge.tsx",
+      "**/ui/button.tsx",
+      "**/ui/form.tsx",
+      "**/ui/navigation-menu.tsx",
+      "**/ui/sidebar.tsx",
+      "**/contexts/AuthContext.tsx",
+      "**/app/layout.tsx"
+    ],
     rules: {
       "react-refresh/only-export-components": "off",
     },

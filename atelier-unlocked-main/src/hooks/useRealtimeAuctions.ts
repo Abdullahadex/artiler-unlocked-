@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useRealtimeAuctions() {
   const queryClient = useQueryClient();
@@ -21,8 +21,8 @@ export function useRealtimeAuctions() {
         (payload) => {
           console.log('Auction change:', payload);
           queryClient.invalidateQueries({ queryKey: ['auctions'] });
-          if (payload.new?.id) {
-            queryClient.invalidateQueries({ queryKey: ['auction', payload.new.id] });
+          if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+            queryClient.invalidateQueries({ queryKey: ['auction', payload.new.id as string] });
           }
         }
       )
@@ -35,9 +35,10 @@ export function useRealtimeAuctions() {
         },
         (payload) => {
           console.log('Bid change:', payload);
-          if (payload.new?.auction_id) {
-            queryClient.invalidateQueries({ queryKey: ['bids', payload.new.auction_id] });
-            queryClient.invalidateQueries({ queryKey: ['auction', payload.new.auction_id] });
+          if (payload.new && typeof payload.new === 'object' && 'auction_id' in payload.new) {
+            const auctionId = payload.new.auction_id as string;
+            queryClient.invalidateQueries({ queryKey: ['bids', auctionId] });
+            queryClient.invalidateQueries({ queryKey: ['auction', auctionId] });
             queryClient.invalidateQueries({ queryKey: ['auctions'] });
           }
         }

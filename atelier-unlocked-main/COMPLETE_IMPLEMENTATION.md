@@ -210,7 +210,7 @@ Your auction platform is now **100% production-ready** with every feature implem
 ### Required Setup
 - [x] All code implemented
 - [ ] Install dependencies: `npm install`
-- [ ] Set environment variables (see `.env.example`)
+- [ ] Set environment variables (see `env.template`)
 - [ ] Run database migrations
 - [ ] Configure Stripe (keys + webhook)
 - [ ] Configure email service (SMTP)
@@ -256,7 +256,7 @@ Your auction platform is now **100% production-ready** with:
 - `PRODUCTION_SETUP.md` - Complete setup guide
 - `IMPLEMENTATION_SUMMARY.md` - Feature overview
 - `tests/README.md` - Testing guide
-- `.env.example` - Environment variables
+- `env.template` - Environment variables
 
 ---
 

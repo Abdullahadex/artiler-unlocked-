@@ -24,6 +24,10 @@ export default function Masterpiece() {
   const { user } = useAuth();
   const placeBid = usePlaceBid();
 
+  // Calculate countdown - must be before early returns
+  const endTime = auction ? new Date(auction.end_time) : new Date();
+  const { timeLeft, isExpired } = useCountdown(endTime);
+
   // Track page view
   useEffect(() => {
     if (id) {
@@ -64,8 +68,6 @@ export default function Masterpiece() {
     );
   }
 
-  const endTime = new Date(auction.end_time);
-  const { timeLeft, isExpired } = useCountdown(endTime);
   const isUnlocked = auction.status === 'UNLOCKED' || auction.status === 'SOLD';
   const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || isExpired;
   const minBid = auction.current_price + 100;
@@ -101,8 +103,9 @@ export default function Masterpiece() {
       await placeBid.mutateAsync({ auctionId: auction.id, amount: minBid });
       analytics.bidPlaced(auction.id, minBid);
       toast.success('Bid placed successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to place bid');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
+      toast.error(errorMessage);
     }
   };
 

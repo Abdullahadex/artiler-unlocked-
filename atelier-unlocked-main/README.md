@@ -24,7 +24,7 @@ npm install
 
 3. Set up environment variables:
 ```sh
-cp .env.example .env.local
+cp env.template .env.local
 ```
 
 Then update `.env.local` with your Supabase credentials:

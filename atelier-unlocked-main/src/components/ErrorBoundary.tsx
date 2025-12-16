@@ -24,10 +24,10 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log to error tracking service
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    if (typeof window !== 'undefined' && 'Sentry' in window && typeof (window as { Sentry?: { captureException: (error: Error, context: { contexts: { react: React.ErrorInfo } }) => void } }).Sentry?.captureException === 'function') {
+      (window as { Sentry: { captureException: (error: Error, context: { contexts: { react: React.ErrorInfo } }) => void } }).Sentry.captureException(error, {
         contexts: { react: errorInfo },
       });
     }

@@ -136,8 +136,9 @@ export default function SubmissionForm() {
 
       toast.success('Piece submitted successfully! It will appear on The Floor shortly.');
       router.push('/floor');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to submit piece. Please try again.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit piece. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const rateLimitResult = rateLimit(`bid:${user.id}`, 20, 60000); // 20 bids per minute
 
     if (!rateLimitResult.allowed) {
@@ -130,10 +130,11 @@ export async function POST(request: NextRequest) {
       bid,
       remaining: rateLimitResult.remaining,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
     console.error('Bid placement error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to place bid' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

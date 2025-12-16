@@ -47,10 +47,11 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(metrics);
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Analytics dashboard error:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: errorMessage },
       { status: 500 }
     );
   }

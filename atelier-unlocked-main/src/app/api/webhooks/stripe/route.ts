@@ -28,15 +28,16 @@ export async function POST(request: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Webhook signature verification failed:', errorMessage);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   const supabase = await createClient();
 
   switch (event.type) {
-    case 'payment_intent.succeeded':
+    case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object;
       const { auctionId, userId } = paymentIntent.metadata;
 
@@ -49,15 +50,13 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (auction) {
-          // Get user email - try from user metadata first
-          // Note: In production, you may want to store email in profiles or use service role
-          // For now, we'll log and skip if email can't be retrieved
-          console.log('Payment success notification - email sending requires user email lookup');
-          // TODO: Implement proper email retrieval
-          // The email should be available in payment metadata or user profile
+          // Optional: notify the winner. We need a reliable user email source for this flow
+          // (e.g., store email in a profile record or include it in payment metadata).
+          console.log('Payment succeeded; skipping email notification (recipient email not available).');
         }
       }
       break;
+    }
 
     case 'payment_intent.payment_failed':
       // Handle failed payment

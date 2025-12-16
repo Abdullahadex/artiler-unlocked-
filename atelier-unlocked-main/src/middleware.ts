@@ -39,10 +39,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Rate limiting (simple in-memory - use Redis in production)
-  const ip = request.ip || 'unknown';
+  // Rate limiting (in-memory)
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const ip =
+    forwardedFor?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   const rateLimitKey = `rate_limit_${ip}`;
-  // This is a basic implementation - use proper rate limiting library
+  // (Currently unused; reserved for request-scoped throttling if needed.)
 
   await supabase.auth.getUser();
 

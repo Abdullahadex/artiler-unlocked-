@@ -1,14 +1,14 @@
 # Production Readiness Audit
 
-## Current Status: ⚠️ **NOT PRODUCTION READY** - Needs Critical Additions
+## Current Status: **MVP / internal demo ready** (recommended improvements before a public launch)
 
-## Critical Missing Features for Real-World Use
+## Recommended Improvements for Public Launch
 
-### 🔴 **CRITICAL - Must Have Before Launch**
+### **High priority**
 
 #### 1. **Payment Processing** ❌
-   - **Status**: Not implemented
-   - **Impact**: Users can bid but cannot pay
+   - **Status**: Partially implemented (Stripe routes exist; full end-to-end flow depends on your desired business rules)
+   - **Impact**: Payments require validation against your auction rules and a tested webhook flow
    - **Required**: 
      - Stripe/PayPal integration
      - Payment hold on bid placement
@@ -17,8 +17,8 @@
      - Payment verification
 
 #### 2. **Email Notifications** ❌
-   - **Status**: Not implemented
-   - **Impact**: Users don't know about bid updates, wins, losses
+   - **Status**: Partially implemented (SMTP endpoint exists; expand triggers/templates as needed)
+   - **Impact**: Add notifications for bid updates, wins/losses, and receipts as appropriate
    - **Required**:
      - Welcome emails
      - Bid confirmation
@@ -28,7 +28,7 @@
      - Payment reminders
 
 #### 3. **Error Handling & Logging** ⚠️
-   - **Status**: Basic error handling only
+   - **Status**: Basic error handling in place
    - **Missing**:
      - Error boundary components
      - Centralized error logging (Sentry, LogRocket)
@@ -37,7 +37,7 @@
      - Retry mechanisms
 
 #### 4. **Security Hardening** ⚠️
-   - **Status**: Basic RLS policies exist
+   - **Status**: RLS policies exist; additional hardening depends on deployment needs
    - **Missing**:
      - Rate limiting on API calls
      - CSRF protection

@@ -197,7 +197,7 @@ CRON_SECRET
 
 ## 🚀 Next Steps
 
-1. **Set up environment variables** (see `.env.example`)
+1. **Set up environment variables** (see `env.template`)
 2. **Run database migration** (`20251215200000_auction_logic_fixes.sql`)
 3. **Configure Stripe** (get API keys, set up webhook)
 4. **Configure email service** (SMTP or service like SendGrid)

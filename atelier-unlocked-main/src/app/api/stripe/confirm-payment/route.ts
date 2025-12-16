@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
       success: false,
       status: paymentIntent.status,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to confirm payment';
     console.error('Payment confirmation error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to confirm payment' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

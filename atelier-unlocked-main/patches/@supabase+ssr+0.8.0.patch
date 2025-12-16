@@ -1,0 +1,20 @@
+diff --git a/node_modules/@supabase/ssr/dist/module/createBrowserClient.js b/node_modules/@supabase/ssr/dist/module/createBrowserClient.js
+index 5049301..3960889 100644
+--- a/node_modules/@supabase/ssr/dist/module/createBrowserClient.js
++++ b/node_modules/@supabase/ssr/dist/module/createBrowserClient.js
+@@ -1,4 +1,4 @@
+-import { createClient, } from "@supabase/supabase-js";
++import { createClient, } from "@supabase/supabase-js/dist/module/index.js";
+ import { VERSION } from "./version";
+ import { isBrowser } from "./utils";
+ import { createStorageFromOptions } from "./cookies";
+diff --git a/node_modules/@supabase/ssr/dist/module/createServerClient.js b/node_modules/@supabase/ssr/dist/module/createServerClient.js
+index 515fdfb..5333530 100644
+--- a/node_modules/@supabase/ssr/dist/module/createServerClient.js
++++ b/node_modules/@supabase/ssr/dist/module/createServerClient.js
+@@ -1,4 +1,4 @@
+-import { createClient, } from "@supabase/supabase-js";
++import { createClient, } from "@supabase/supabase-js/dist/module/index.js";
+ import { VERSION } from "./version";
+ import { createStorageFromOptions, applyServerStorage } from "./cookies";
+ import { memoryLocalStorageAdapter } from "./utils/helpers";

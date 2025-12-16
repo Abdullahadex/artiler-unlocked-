@@ -131,7 +131,7 @@ export default function AdminDashboard() {
                   <Skeleton className="h-32" />
                 ) : (
                   <div className="space-y-3">
-                    {analytics?.events?.slice(0, 5).map((event: any, i: number) => (
+                    {analytics?.events?.slice(0, 5).map((event: { event_name: string; created_at: string }, i: number) => (
                       <div key={i} className="flex justify-between items-center py-2 border-b border-border">
                         <span className="ui-label">{event.event_name}</span>
                         <span className="ui-caption text-muted-foreground">
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="space-y-2">
                       {['bid_placed', 'auction_viewed', 'user_signed_up'].map((event) => {
-                        const count = analytics?.events?.filter((e: any) => e.event_name === event).length || 0;
+                        const count = analytics?.events?.filter((e: { event_name: string }) => e.event_name === event).length || 0;
                         return (
                           <div key={event} className="flex justify-between">
                             <span className="ui-caption">{event.replace('_', ' ')}</span>
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
                       <div className="flex justify-between">
                         <span className="ui-caption">Last 24h</span>
                         <span className="ui-label">
-                          {analytics?.events?.filter((e: any) => {
+                          {analytics?.events?.filter((e: { created_at: string }) => {
                             const eventTime = new Date(e.created_at);
                             const dayAgo = new Date(Date.now() - 86400000);
                             return eventTime > dayAgo;

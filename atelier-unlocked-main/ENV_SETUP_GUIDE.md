@@ -4,7 +4,7 @@
 
 1. **Copy the example file:**
    ```bash
-   cp .env.example .env.local
+   cp env.template .env.local
    ```
 
 2. **Fill in your values** (see instructions below)
