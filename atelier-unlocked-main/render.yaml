@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: atelier-unlocked
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+        optional: true
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+        optional: true
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+        optional: true
+      - key: SMTP_HOST
+        sync: false
+        optional: true
+      - key: SMTP_PORT
+        sync: false
+        optional: true
+      - key: SMTP_USER
+        sync: false
+        optional: true
+      - key: SMTP_PASSWORD
+        sync: false
+        optional: true
+      - key: SMTP_FROM
+        sync: false
+        optional: true
+      - key: CRON_SECRET
+        sync: false
+        optional: true
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+        optional: true
+
