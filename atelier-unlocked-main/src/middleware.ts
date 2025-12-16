@@ -1,62 +1,15 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-/**
- * Check if a string is a valid Supabase URL
- */
-function isValidSupabaseUrl(url: string | undefined): url is string {
-  if (!url || typeof url !== 'string') return false;
-  return url.startsWith('https://') && url.includes('.supabase.co');
-}
-
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  // Skip Supabase auth if not properly configured
-  if (!isValidSupabaseUrl(supabaseUrl) || !supabaseKey || supabaseKey.length < 20) {
-    return response;
-  }
-
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // Rate limiting (in-memory)
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const ip =
-    forwardedFor?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown';
-  const rateLimitKey = `rate_limit_${ip}`;
-  // (Currently unused; reserved for request-scoped throttling if needed.)
-
-  await supabase.auth.getUser();
+  // Skip Supabase auth in middleware to avoid Edge runtime incompatibility
+  // Authentication is handled in API routes and client-side code instead
+  // This middleware can be extended for rate limiting or other Edge-safe operations
 
   return response;
 }

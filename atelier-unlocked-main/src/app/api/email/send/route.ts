@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/integrations/supabase/server';
 import nodemailer from 'nodemailer';
 
+export const runtime = 'nodejs';
+
 // Email transporter setup (using Supabase or external service)
 // Only create transporter if SMTP is configured
 const getTransporter = () => {

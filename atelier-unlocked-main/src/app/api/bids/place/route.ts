@@ -3,6 +3,8 @@ import { createClient } from '@/integrations/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { auctionId, amount } = await request.json();

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/integrations/supabase/server';
 import { sendEmail } from '@/lib/email';
 
+export const runtime = 'nodejs';
+
 // This endpoint should be called by a cron job (Vercel Cron, Supabase Edge Function, etc.)
 export async function GET(request: NextRequest) {
   // Verify cron secret

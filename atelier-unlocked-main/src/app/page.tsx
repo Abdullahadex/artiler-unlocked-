@@ -28,7 +28,7 @@ export default function Landing() {
         </div>
 
         {/* Divider */}
-        <div className="w-px h-16 bg-gradient-to-b from-transparent via-border to-transparent my-12 opacity-0 animate-fade-up delay-200" />
+        <div className="w-[2px] h-16 bg-gradient-to-b from-transparent via-foreground/50 to-transparent my-12 opacity-0 animate-fade-up delay-200" />
 
         {/* Role Selection */}
         <div className="flex flex-col md:flex-row gap-6 md:gap-12 opacity-0 animate-fade-up delay-400">
@@ -79,17 +79,17 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Corner accents */}
-      <div className="absolute top-8 left-8 w-8 h-8 border-l border-t border-border opacity-70" />
-      <div className="absolute top-8 right-8 w-8 h-8 border-r border-t border-border opacity-70" />
-      <div className="absolute bottom-8 left-8 w-8 h-8 border-l border-b border-border opacity-70" />
-      <div className="absolute bottom-8 right-8 w-8 h-8 border-r border-b border-border opacity-70" />
+      {/* Corner accents - highly visible */}
+      <div className="absolute top-8 left-8 w-16 h-16 border-l-[2px] border-t-[2px] border-foreground/70" />
+      <div className="absolute top-8 right-8 w-16 h-16 border-r-[2px] border-t-[2px] border-foreground/70" />
+      <div className="absolute bottom-8 left-8 w-16 h-16 border-l-[2px] border-b-[2px] border-foreground/70" />
+      <div className="absolute bottom-8 right-8 w-16 h-16 border-r-[2px] border-b-[2px] border-foreground/70" />
       
-      {/* Edge lines */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-70" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-70" />
-      <div className="absolute top-0 bottom-0 left-0 w-px bg-gradient-to-b from-transparent via-border to-transparent opacity-70" />
-      <div className="absolute top-0 bottom-0 right-0 w-px bg-gradient-to-b from-transparent via-border to-transparent opacity-70" />
+      {/* Edge lines - highly visible */}
+      <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-foreground/60 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-foreground/60 to-transparent" />
+      <div className="absolute top-0 bottom-0 left-0 w-[1.5px] bg-gradient-to-b from-transparent via-foreground/60 to-transparent" />
+      <div className="absolute top-0 bottom-0 right-0 w-[1.5px] bg-gradient-to-b from-transparent via-foreground/60 to-transparent" />
     </div>
   );
 }
