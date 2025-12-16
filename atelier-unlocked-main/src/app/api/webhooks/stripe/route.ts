@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { createClient } from '@/integrations/supabase/server';
 import { sendEmail } from '@/lib/email';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
+  if (!stripe) {
+    return NextResponse.json(
+      { error: 'Webhook processing is not configured' },
+      { status: 503 }
+    );
+  }
+
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   if (!webhookSecret) {

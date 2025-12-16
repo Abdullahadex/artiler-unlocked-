@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { createClient } from '@/integrations/supabase/server';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
     // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const stripe = getStripe();
+    if (!stripe) {
       return NextResponse.json(
         { error: 'Payment processing is not configured' },
         { status: 503 }
