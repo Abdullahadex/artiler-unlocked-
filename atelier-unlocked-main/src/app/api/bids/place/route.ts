@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendEmail } from '@/lib/email';
 import type { Database } from '@/integrations/supabase/types';
@@ -51,7 +52,6 @@ export async function POST(request: NextRequest) {
     
     if (accessToken) {
       // If we have an access token, use it to get the user
-      const { createClient } = await import('@supabase/supabase-js');
       const tempClient = createClient<Database>(url, key, {
         global: {
           headers: {
