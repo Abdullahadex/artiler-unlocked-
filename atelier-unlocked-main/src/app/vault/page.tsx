@@ -33,6 +33,22 @@ export default function Vault() {
   const { data: auctions, isLoading: auctionsLoading } = useAuctions();
   const supabase = getSupabaseClient();
 
+  const isDesigner = profile?.role === 'designer';
+
+  const { data: userBids, isLoading: bidsLoading } = useQuery<string[]>({
+    queryKey: ['user-bids', user?.id],
+    queryFn: async (): Promise<string[]> => {
+      if (!user?.id || !supabase) return [];
+      const { data, error } = await supabase
+        .from('bids')
+        .select('auction_id')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return (data || []).map(b => b.auction_id);
+    },
+    enabled: !!user?.id && profile?.role !== 'designer' && !!supabase,
+  });
+
   useEffect(() => {
     if (user && !authLoading) {
       refreshProfile();
@@ -75,22 +91,6 @@ export default function Vault() {
       </div>
     );
   }
-
-  const isDesigner = profile?.role === 'designer';
-
-  const { data: userBids, isLoading: bidsLoading } = useQuery<string[]>({
-    queryKey: ['user-bids', user?.id],
-    queryFn: async (): Promise<string[]> => {
-      if (!user?.id || !supabase) return [];
-      const { data, error } = await supabase
-        .from('bids')
-        .select('auction_id')
-        .eq('user_id', user.id);
-      if (error) throw error;
-      return (data || []).map(b => b.auction_id);
-    },
-    enabled: !!user?.id && !isDesigner && !!supabase,
-  });
 
   const designerAuctions = isDesigner 
     ? (auctions || []).filter(a => a.designer_id === user.id)

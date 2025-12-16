@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Profile } from '@/types/database';
@@ -28,22 +28,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = getSupabaseClient();
   const configured = supabase !== null;
 
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
+    } catch (err) {
+      setProfile(null);
+    }
+  }, [supabase]);
+
   useEffect(() => {
-    // If Supabase is not configured, just set loading to false and return
     if (!supabase) {
       setLoading(false);
       return;
     }
     
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Fetch profile when session changes
         if (session?.user) {
-          // Wait a bit longer for database trigger to complete
           setTimeout(() => {
             fetchProfile(session.user.id);
           }, 1000);
@@ -53,7 +69,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -64,34 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
-
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      // maybeSingle() returns null data (not an error) when no row is found
-      // Empty error objects are normal and mean "not found"
-      // We don't log errors here - they're handled silently
-      
-      if (data) {
-        setProfile(data);
-      } else {
-        // No profile found - this is normal for new users
-        setProfile(null);
-      }
-    } catch (err) {
-      // Catch any unexpected errors
-      console.error('Unexpected error fetching profile:', err);
-      setProfile(null);
-    }
-  };
+  }, [supabase, fetchProfile]);
 
   const signUp = async (email: string, password: string, displayName?: string, role: 'collector' | 'designer' = 'collector') => {
     if (!supabase) {
