@@ -20,6 +20,15 @@ export const metadata: Metadata = {
   description: "Where exclusive pieces are unlocked by collective desire",
   keywords: ["luxury", "auction", "fashion", "design", "collectibles"],
   authors: [{ name: "ATELIER" }],
+  icons: {
+    icon: [
+      { url: '/icon.jpg', type: 'image/jpeg' },
+      { url: '/icon.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icon.jpg', sizes: '180x180', type: 'image/jpeg' },
+    ],
+  },
   openGraph: {
     title: "ATELIER - Luxury Validated by Desire",
     description: "Where exclusive pieces are unlocked by collective desire",
