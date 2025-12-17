@@ -2,6 +2,7 @@
 -- This migration is safe to run multiple times
 
 -- Check if admin role exists, if not add it
+
 DO $$
 BEGIN
   -- Check if 'admin' is already in the enum

@@ -72,7 +72,7 @@ export default function Landing() {
         </div>
 
         {/* Footer tagline */}
-        <div className="absolute bottom-8 left-0 right-0 text-center opacity-0 animate-fade-up delay-600">
+        <div className="absolute bottom-8 left-0 right-0 text-center opacity-0 animate-fade-up delay-600 hidden md:block">
           <p className="ui-caption">
             Where exclusive pieces are unlocked by collective desire
           </p>
