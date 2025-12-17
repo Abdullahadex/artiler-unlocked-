@@ -31,8 +31,8 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
   const endTime = new Date(auction.end_time);
   const { timeLeft, isExpired } = useCountdown(endTime);
   const isUnlocked = auction.status === 'UNLOCKED' || auction.status === 'SOLD';
-  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || 
-    (auction.status === 'UNLOCKED' && isExpired);
+  // Show as ended if status is SOLD/VOID, or if expired (even if status hasn't updated yet)
+  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || isExpired;
 
   // Vary heights for masonry effect
   const heights = ['aspect-[3/4]', 'aspect-[2/3]', 'aspect-[4/5]', 'aspect-[3/5]'];

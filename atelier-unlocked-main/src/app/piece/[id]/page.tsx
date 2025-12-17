@@ -82,10 +82,8 @@ export default function Masterpiece() {
   }
 
   const isUnlocked = auction.status === 'UNLOCKED' || auction.status === 'SOLD';
-  // LOCKED auctions should never show as ended, even if end_time has passed
-  // They're waiting for bids to unlock. Only UNLOCKED auctions can be ended by time.
-  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || 
-    (auction.status === 'UNLOCKED' && isExpired);
+  // Show as ended if status is SOLD/VOID, or if expired (even if status hasn't updated yet)
+  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || isExpired;
   const minBid = auction.current_price + 100;
   // Use designer_name from auction if available, otherwise use profile display_name
   // This allows archive items to show different designer names

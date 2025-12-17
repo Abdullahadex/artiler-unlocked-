@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuctions } from '@/hooks/useAuctions';
+import { useAuctions, useCheckExpiredAuctions } from '@/hooks/useAuctions';
 import AuctionCard from '@/components/AuctionCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,8 +14,23 @@ export default function Floor() {
   const [filter, setFilter] = useState<FilterType>('all');
   const { data: auctions, isLoading, error } = useAuctions();
   const { user, profile } = useAuth();
+  const checkExpired = useCheckExpiredAuctions();
 
   const isDesigner = profile?.role === 'designer';
+
+  // Check for expired auctions on mount and periodically
+  useEffect(() => {
+    // Check immediately on mount
+    checkExpired.mutate();
+
+    // Check every 30 seconds
+    const interval = setInterval(() => {
+      checkExpired.mutate();
+    }, 30000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Count real active items (only show banner if there are real items, not dummy data)
   const activeItems = (auctions || []).filter(
@@ -37,22 +52,34 @@ export default function Floor() {
     const hoursLeft = (endTime - now) / (1000 * 60 * 60);
     const isExpired = endTime < now;
     
+    // Always exclude SOLD and VOID items from active views (they belong in archive)
+    // Always exclude expired auctions from active views (they should be processed by check-expired endpoint)
+    // Treat expired auctions as ended even if status hasn't been updated yet
+    if (auction.status === 'SOLD' || auction.status === 'VOID' || isExpired) {
+      // Only show SOLD items in archive filter
+      if (filter === 'archive' && auction.status === 'SOLD') {
+        return true;
+      }
+      // Don't show expired, SOLD, or VOID items in any other filter
+      return false;
+    }
+    
     // For LOCKED auctions, always show them (they're newly uploaded)
-    // For UNLOCKED auctions, only show if not expired
-    const isActive = auction.status === 'LOCKED' || (auction.status === 'UNLOCKED' && !isExpired);
+    // For UNLOCKED auctions, only show if not expired (already checked above)
+    const isActive = auction.status === 'LOCKED' || auction.status === 'UNLOCKED';
     
     switch (filter) {
       case 'archive':
-        // Show only SOLD items (archive/reference pieces)
-        return auction.status === 'SOLD';
+        // Show only SOLD items (archive/reference pieces) - already handled above
+        return false;
       case 'live':
         return isActive;
       case 'ending':
-        return isActive && !isExpired && hoursLeft > 0 && hoursLeft <= 2;
+        return isActive && hoursLeft > 0 && hoursLeft <= 2;
       case 'unlocked':
         return auction.status === 'UNLOCKED' && isActive;
-      default: // 'all' - show all active auctions (including newly uploaded LOCKED ones), but exclude SOLD/VOID
-        return isActive && auction.status !== 'SOLD' && auction.status !== 'VOID';
+      default: // 'all' - show all active auctions (including newly uploaded LOCKED ones)
+        return isActive;
     }
   });
 

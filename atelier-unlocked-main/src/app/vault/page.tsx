@@ -14,8 +14,8 @@ import type { Auction } from '@/types/database';
 import SubmissionForm from '@/components/SubmissionForm';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useDeleteAuction } from '@/hooks/useAuctions';
-import { Trash2 } from 'lucide-react';
+import { useDeleteAuction, useReactivateAuction } from '@/hooks/useAuctions';
+import { Trash2, RotateCcw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -670,8 +670,11 @@ interface ItemGridProps {
 
 const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridProps) => {
   const deleteAuction = useDeleteAuction();
+  const reactivateAuction = useReactivateAuction();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [auctionToDelete, setAuctionToDelete] = useState<Auction | null>(null);
+  const [reactivateConfirmOpen, setReactivateConfirmOpen] = useState(false);
+  const [auctionToReactivate, setAuctionToReactivate] = useState<Auction | null>(null);
 
   const handleDeleteClick = (e: React.MouseEvent, auction: Auction) => {
     e.preventDefault();
@@ -690,6 +693,32 @@ const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridP
       setAuctionToDelete(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete piece';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleReactivateClick = (e: React.MouseEvent, auction: Auction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAuctionToReactivate(auction);
+    setReactivateConfirmOpen(true);
+  };
+
+  const handleReactivateConfirm = async () => {
+    if (!auctionToReactivate) return;
+    
+    try {
+      // Default to 3 days from now
+      const defaultEndTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      await reactivateAuction.mutateAsync({ 
+        auctionId: auctionToReactivate.id,
+        endTime: defaultEndTime,
+      });
+      toast.success('Piece reactivated and back on The Floor');
+      setReactivateConfirmOpen(false);
+      setAuctionToReactivate(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reactivate piece';
       toast.error(errorMessage);
     }
   };
@@ -768,6 +797,21 @@ const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridP
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
+            
+            {showDelete && item.status === 'SOLD' && (
+              <div className="p-4 border-t border-border bg-accent/5">
+                <button
+                  onClick={(e) => handleReactivateClick(e, item)}
+                  className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-foreground transition-colors flex items-center justify-center gap-2"
+                  disabled={reactivateAuction.isPending}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="ui-label text-sm">
+                    {reactivateAuction.isPending ? 'Reactivating...' : 'Put Back on Floor'}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
       ))}
     </div>
@@ -788,6 +832,27 @@ const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridP
               disabled={deleteAuction.isPending}
             >
               {deleteAuction.isPending ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={reactivateConfirmOpen} onOpenChange={setReactivateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Put Piece Back on The Floor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reactivate "{auctionToReactivate?.title}"? It will be put back on The Floor with a new 3-day auction period. The piece will reset to LOCKED status and start from the original starting price.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAuctionToReactivate(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReactivateConfirm}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              disabled={reactivateAuction.isPending}
+            >
+              {reactivateAuction.isPending ? 'Reactivating...' : 'Reactivate'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

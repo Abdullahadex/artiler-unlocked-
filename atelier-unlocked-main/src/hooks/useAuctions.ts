@@ -182,3 +182,57 @@ export const useDeleteAuction = (isAdmin: boolean = false) => {
     },
   });
 };
+
+// Hook to check and update expired auctions
+export const useCheckExpiredAuctions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auctions/check-expired', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to check expired auctions');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate auctions query to refetch with updated statuses
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      queryClient.invalidateQueries({ queryKey: ['auction'] });
+    },
+  });
+};
+
+// Hook to reactivate a SOLD auction back to the floor
+export const useReactivateAuction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ auctionId, endTime }: { auctionId: string; endTime?: string }) => {
+      const response = await fetch('/api/auctions/reactivate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ auctionId, endTime }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reactivate auction');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate auctions query to refetch with updated status
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      queryClient.invalidateQueries({ queryKey: ['auction'] });
+    },
+  });
+};
