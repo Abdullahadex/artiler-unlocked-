@@ -43,10 +43,17 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (winningBid) {
-        // Update auction status
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const checkoutUrl = `${appUrl}/checkout/${auction.id}`;
+
+        // Update auction status and set winner
         await supabase
           .from('auctions')
-          .update({ status: 'SOLD' })
+          .update({ 
+            status: 'SOLD',
+            winner_id: winningBid.user_id,
+            fulfillment_status: 'pending_payment',
+          })
           .eq('id', auction.id);
 
         // Notify winner - get email from auth.users
@@ -61,6 +68,25 @@ export async function GET(request: NextRequest) {
                 auctionTitle: auction.title,
                 amount: winningBid.amount,
                 auctionId: auction.id,
+                checkoutUrl: checkoutUrl,
+              }
+            ).catch(console.error);
+          }
+        }
+
+        // Notify designer
+        if (auction.designer) {
+          const { data: { user: designerUser } } = await supabase.auth.admin.getUserById(auction.designer_id);
+          
+          if (designerUser?.email) {
+            await sendEmail(
+              designerUser.email,
+              'auctionEnded',
+              {
+                auctionTitle: auction.title,
+                amount: winningBid.amount,
+                auctionId: auction.id,
+                status: 'sold',
               }
             ).catch(console.error);
           }

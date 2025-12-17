@@ -82,10 +82,13 @@ export async function POST(request: NextRequest) {
       auctionWon: (data) => {
         const amount = typeof data.amount === 'number' ? data.amount : 0;
         const auctionTitle = typeof data.auctionTitle === 'string' ? data.auctionTitle : 'Auction';
+        const checkoutUrl = typeof data.checkoutUrl === 'string' ? data.checkoutUrl : '';
         return `
         <h2>Congratulations! You Won!</h2>
         <p>You are the winning bidder for "${auctionTitle}".</p>
         <p>Winning bid: €${amount.toLocaleString()}</p>
+        <p>Please complete payment and provide your shipping address to receive your item.</p>
+        ${checkoutUrl ? `<p><a href="${checkoutUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px;">Complete Checkout</a></p>` : ''}
         <p>Please complete payment within 48 hours.</p>
       `;
       },

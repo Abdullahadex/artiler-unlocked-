@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { User, Package, TrendingUp, Clock, Award, Sparkles } from 'lucide-react';
+import { User, TrendingUp, Clock, Award, Sparkles, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuctions } from '@/hooks/useAuctions';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +27,326 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Package } from 'lucide-react';
+
+// Acquisitions Grid Component with Checkout Links
+interface AcquisitionsGridProps {
+  items: Auction[];
+  emptyText: string;
+  isLoading?: boolean;
+  userId: string;
+}
+
+function AcquisitionsGrid({ items, emptyText, isLoading, userId }: AcquisitionsGridProps) {
+  if (isLoading) {
+    return (
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-card border border-border rounded-sm overflow-hidden">
+            <Skeleton className="aspect-[4/3]" />
+            <div className="p-4 space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-6 w-48" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="heading-editorial text-xl text-muted-foreground">{emptyText}</p>
+        <Link href="/floor" className="ui-label text-accent hover:text-accent/80 mt-4 inline-block">
+          Browse The Floor
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map((item) => {
+        const itemWithFulfillment = item as Auction & {
+          fulfillment_status?: string | null;
+          winner_id?: string | null;
+          tracking_number?: string | null;
+        };
+        const needsPayment = itemWithFulfillment.fulfillment_status === 'pending_payment' && itemWithFulfillment.winner_id === userId;
+        const isShipped = itemWithFulfillment.fulfillment_status === 'shipped';
+        const hasTracking = !!itemWithFulfillment.tracking_number;
+
+        return (
+          <div
+            key={item.id}
+            className="group bg-card border border-border rounded-sm overflow-hidden hover:border-accent transition-colors duration-300 relative"
+          >
+            <Link
+              href={`/piece/${item.id}`}
+              className="block"
+            >
+              <div className="aspect-[4/3] overflow-hidden">
+                <img
+                  src={item.images?.[0] || '/placeholder.svg'}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4">
+                  <span className="ui-label text-muted-foreground">
+                  {itemWithFulfillment.designer_name || item.designer?.display_name || 'Unknown Designer'}
+                </span>
+                <h3 className="font-serif text-lg mt-1 mb-2 group-hover:text-accent transition-colors">
+                  {item.title}
+                </h3>
+                <div className="flex items-center justify-between">
+                  <span className="heading-display text-xl text-accent">
+                    €{item.current_price.toLocaleString()}
+                  </span>
+                  {isShipped && (
+                    <span className="ui-caption text-accent">Shipped</span>
+                  )}
+                </div>
+              </div>
+            </Link>
+            
+            {/* Checkout Button for items needing payment */}
+            {needsPayment && (
+              <div className="p-4 border-t border-border bg-accent/5">
+                <Link href={`/checkout/${item.id}`}>
+                  <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                    Complete Checkout
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Tracking info for shipped items */}
+            {isShipped && hasTracking && (
+              <div className="p-4 border-t border-border bg-muted/30">
+                <p className="ui-caption text-muted-foreground mb-1">Tracking</p>
+                <p className="font-mono text-sm">{itemWithFulfillment.tracking_number}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Shipping Tab Component for Designers
+function ShippingTab({ designerId }: { designerId: string }) {
+  const supabase = getSupabaseClient();
+  const [trackingNumber, setTrackingNumber] = useState<Record<string, string>>({});
+  const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
+
+  const { data: auctions, isLoading } = useAuctions();
+  
+  // Get sold auctions that need shipping
+  const soldAuctions = (auctions || []).filter(
+    a => a.designer_id === designerId && 
+         a.status === 'SOLD' && 
+         (a.fulfillment_status === 'address_collected' || a.fulfillment_status === 'shipped')
+  );
+
+  const { data: shippingAddresses } = useQuery<Array<{
+    id: string;
+    auction_id: string;
+    full_name: string;
+    address_line1: string;
+    address_line2?: string | null;
+    city: string;
+    state?: string | null;
+    postal_code: string;
+    country: string;
+    phone?: string | null;
+  }>>({
+    queryKey: ['shipping-addresses', soldAuctions.map(a => a.id)],
+    queryFn: async () => {
+      if (!supabase || soldAuctions.length === 0) return [];
+      
+      const auctionIds = soldAuctions.map(a => a.id);
+      // Type assertion needed until Supabase types are regenerated after migration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supabaseAny = supabase as any;
+      const { data, error } = await supabaseAny
+        .from('shipping_addresses')
+        .select('*')
+        .in('auction_id', auctionIds);
+
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        auction_id: string;
+        full_name: string;
+        address_line1: string;
+        address_line2?: string | null;
+        city: string;
+        state?: string | null;
+        postal_code: string;
+        country: string;
+        phone?: string | null;
+      }>;
+    },
+    enabled: soldAuctions.length > 0 && !!supabase,
+  });
+
+  const handleUpdateTracking = async (auctionId: string) => {
+    if (!supabase) return;
+    
+    const tracking = trackingNumber[auctionId]?.trim();
+    if (!tracking) {
+      toast.error('Please enter a tracking number');
+      return;
+    }
+
+    setIsUpdating(prev => ({ ...prev, [auctionId]: true }));
+
+    try {
+      // Type assertion needed until Supabase types are regenerated
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('auctions')
+        .update({
+          tracking_number: tracking,
+          fulfillment_status: 'shipped',
+          shipped_at: new Date().toISOString(),
+        })
+        .eq('id', auctionId);
+
+      if (error) throw error;
+
+      toast.success('Tracking number updated. Winner will be notified.');
+      setTrackingNumber(prev => ({ ...prev, [auctionId]: '' }));
+      
+      // Refresh auctions
+      window.location.reload();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update tracking';
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdating(prev => ({ ...prev, [auctionId]: false }));
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (soldAuctions.length === 0) {
+    return (
+      <div className="text-center py-16 border border-dashed border-border rounded-sm">
+        <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <p className="heading-editorial text-xl text-muted-foreground mb-2">No Items to Ship</p>
+        <p className="ui-caption">Items that have been sold and paid for will appear here for shipping.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h2 className="heading-display text-2xl mb-2">Items to Ship</h2>
+        <p className="ui-caption">Update tracking numbers for sold items that have been shipped.</p>
+      </div>
+
+      {soldAuctions.map((auction) => {
+        const auctionWithFulfillment = auction as Auction & {
+          fulfillment_status?: string | null;
+          tracking_number?: string | null;
+          shipped_at?: string | null;
+        };
+        const address = shippingAddresses?.find(a => a.auction_id === auction.id);
+        const isShipped = auctionWithFulfillment.fulfillment_status === 'shipped';
+        const hasTracking = !!auctionWithFulfillment.tracking_number;
+
+        return (
+          <div key={auction.id} className="p-6 bg-card border border-border rounded-sm">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h3 className="font-serif text-lg mb-1">{auction.title}</h3>
+                <p className="ui-caption text-muted-foreground">
+                  Sold for €{auction.current_price.toLocaleString()}
+                </p>
+                {isShipped && auctionWithFulfillment.shipped_at && (
+                  <p className="ui-caption text-accent mt-1">
+                    Shipped on {new Date(auctionWithFulfillment.shipped_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              <div className={`px-3 py-1 rounded-full text-xs ${
+                isShipped 
+                  ? 'bg-accent/10 text-accent' 
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                {isShipped ? 'Shipped' : 'Ready to Ship'}
+              </div>
+            </div>
+
+            {address && (
+              <div className="mb-4 p-4 bg-muted/50 rounded-sm">
+                <p className="ui-label text-muted-foreground mb-2">Shipping Address</p>
+                <div className="text-sm space-y-1">
+                  <p>{address.full_name}</p>
+                  <p>{address.address_line1}</p>
+                  {address.address_line2 && <p>{address.address_line2}</p>}
+                  <p>{address.city}, {address.state} {address.postal_code}</p>
+                  <p>{address.country}</p>
+                  {address.phone && <p>Phone: {address.phone}</p>}
+                </div>
+              </div>
+            )}
+
+            {hasTracking && (
+              <div className="mb-4 p-4 bg-accent/5 border border-accent/20 rounded-sm">
+                <p className="ui-label text-accent mb-1">Tracking Number</p>
+                <p className="font-mono text-sm">{auctionWithFulfillment.tracking_number}</p>
+              </div>
+            )}
+
+            {!isShipped && (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor={`tracking-${auction.id}`}>Tracking Number</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      id={`tracking-${auction.id}`}
+                      value={trackingNumber[auction.id] || ''}
+                      onChange={(e) => setTrackingNumber(prev => ({
+                        ...prev,
+                        [auction.id]: e.target.value
+                      }))}
+                      placeholder="Enter tracking number"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={() => handleUpdateTracking(auction.id)}
+                      disabled={isUpdating[auction.id]}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                    >
+                      <Truck className="w-4 h-4 mr-2" />
+                      {isUpdating[auction.id] ? 'Updating...' : 'Mark as Shipped'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Vault() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -205,6 +525,12 @@ export default function Vault() {
                   Portfolio
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="shipping" 
+                  className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
+                >
+                  Shipping
+                </TabsTrigger>
+                <TabsTrigger 
                   value="analytics" 
                   className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
                 >
@@ -230,6 +556,10 @@ export default function Vault() {
                   isLoading={auctionsLoading}
                   showDelete={true}
                 />
+              </TabsContent>
+              
+              <TabsContent value="shipping" className="pt-8">
+                <ShippingTab designerId={user.id} />
               </TabsContent>
               
               <TabsContent value="analytics" className="pt-8">
@@ -294,10 +624,11 @@ export default function Vault() {
                   <h2 className="heading-display text-2xl mb-2">Your Acquisitions</h2>
                   <p className="ui-caption">Pieces you've successfully acquired</p>
                 </div>
-                <ItemGrid 
+                <AcquisitionsGrid 
                   items={collectorAcquisitions} 
                   emptyText="No acquisitions yet. Win an auction to see your pieces here." 
-                  isLoading={auctionsLoading || bidsLoading} 
+                  isLoading={auctionsLoading || bidsLoading}
+                  userId={user.id}
                 />
               </TabsContent>
 

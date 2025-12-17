@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Profile } from '@/types/database';
@@ -27,6 +27,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const supabase = getSupabaseClient();
   const configured = supabase !== null;
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    setProfile(data);
+  }, [supabase]);
 
   useEffect(() => {
     // If Supabase is not configured, just set loading to false and return
@@ -63,19 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
-
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
-    
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    setProfile(data);
-  };
+  }, [supabase, fetchProfile]);
 
   const signUp = async (email: string, password: string, displayName?: string, role: 'collector' | 'designer' = 'collector') => {
     if (!supabase) {
