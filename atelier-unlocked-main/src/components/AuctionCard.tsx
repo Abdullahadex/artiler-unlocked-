@@ -17,6 +17,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+interface AuctionCardProps {
+  auction: Auction;
+  index?: number;
+}
+
 const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -44,7 +49,7 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await deleteAuction.mutateAsync(auction.id, isAdmin);
+      await deleteAuction.mutateAsync(auction.id);
       toast.success('Auction removed from The Floor');
       setDeleteConfirmOpen(false);
     } catch (error) {
