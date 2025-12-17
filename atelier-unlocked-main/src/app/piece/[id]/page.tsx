@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useAuction } from '@/hooks/useAuctions';
 import { useBids, usePlaceBid } from '@/hooks/useBids';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,8 @@ export default function Masterpiece() {
   const { data: bids = [], isLoading: bidsLoading } = useBids(id);
   const { user } = useAuth();
   const placeBid = usePlaceBid();
+  const [bidAmount, setBidAmount] = useState<string>('');
+  const [bidError, setBidError] = useState<string>('');
 
   // Calculate countdown - must be before early returns
   const endTime = auction ? new Date(auction.end_time) : new Date();
@@ -35,6 +38,15 @@ export default function Masterpiece() {
       analytics.auctionViewed(id);
     }
   }, [id]);
+
+  // Update bid amount when auction changes - must be before early returns
+  useEffect(() => {
+    if (auction) {
+      const suggestedBid = auction.current_price + 100;
+      setBidAmount(suggestedBid.toString());
+      setBidError('');
+    }
+  }, [auction]);
 
   if (auctionLoading) {
     return (
@@ -75,7 +87,9 @@ export default function Masterpiece() {
   const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || 
     (auction.status === 'UNLOCKED' && isExpired);
   const minBid = auction.current_price + 100;
-  const designerName = auction.designer?.display_name || 'Unknown Designer';
+  // Use designer_name from auction if available, otherwise use profile display_name
+  // This allows archive items to show different designer names
+  const designerName = auction.designer_name || auction.designer?.display_name || 'Unknown Designer';
   const imageUrl = auction.images?.[0] || '/placeholder.svg';
 
   // Transform bids for LiveLedger
@@ -85,6 +99,44 @@ export default function Masterpiece() {
     amount: bid.amount,
     timestamp: new Date(bid.created_at),
   }));
+
+  const validateBidAmount = (amount: string): boolean => {
+    setBidError('');
+    
+    if (!amount || amount.trim() === '') {
+      setBidError('Please enter a bid amount');
+      return false;
+    }
+
+    const numAmount = parseFloat(amount);
+    
+    if (isNaN(numAmount)) {
+      setBidError('Please enter a valid number');
+      return false;
+    }
+
+    if (numAmount <= 0) {
+      setBidError('Bid amount must be greater than 0');
+      return false;
+    }
+
+    if (numAmount <= auction.current_price) {
+      setBidError(`Bid must be higher than current price of €${auction.current_price.toLocaleString()}`);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleBidAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBidAmount(value);
+    
+    // Clear error when user starts typing
+    if (bidError) {
+      setBidError('');
+    }
+  };
 
   const handlePlaceBid = async () => {
     if (!user) {
@@ -104,13 +156,24 @@ export default function Masterpiece() {
       return;
     }
 
+    // Validate bid amount
+    if (!validateBidAmount(bidAmount)) {
+      return;
+    }
+
+    const bidValue = Math.round(parseFloat(bidAmount));
+
     try {
-      await placeBid.mutateAsync({ auctionId: auction.id, amount: minBid });
-      analytics.bidPlaced(auction.id, minBid);
+      await placeBid.mutateAsync({ auctionId: auction.id, amount: bidValue });
+      analytics.bidPlaced(auction.id, bidValue);
       toast.success('Bid placed successfully!');
+      // Reset to suggested next bid
+      setBidAmount((bidValue + 100).toString());
+      setBidError('');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
       toast.error(errorMessage);
+      setBidError(errorMessage);
       
       // If it's an auth error, redirect to sign in
       if (errorMessage.includes('Unauthorized') || errorMessage.includes('sign in')) {
@@ -148,10 +211,17 @@ export default function Masterpiece() {
                 />
                 
                 {isEnded && (
-                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                    <span className="heading-display text-3xl">
-                      {auction.status === 'SOLD' ? 'SOLD' : 'ENDED'}
-                    </span>
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-sm">
+                    <div className="text-center">
+                      <span className="heading-display text-3xl block mb-2">
+                        {auction.status === 'SOLD' ? 'SOLD' : 'ENDED'}
+                      </span>
+                      {auction.status === 'SOLD' && (
+                        <span className="ui-caption text-sm text-muted-foreground">
+                          Archive Reference Piece
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -178,7 +248,14 @@ export default function Masterpiece() {
           <div className="space-y-8 opacity-0 animate-fade-up delay-200">
             {/* Header */}
             <div>
-              <span className="ui-label text-muted-foreground">{designerName}</span>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="ui-label text-muted-foreground">{designerName}</span>
+                {auction.status === 'SOLD' && (
+                  <span className="ui-caption px-3 py-1 bg-muted text-muted-foreground rounded-full">
+                    Archive • Reference
+                  </span>
+                )}
+              </div>
               <h1 className="heading-display text-3xl md:text-4xl mt-2 mb-4">
                 {auction.title}
               </h1>
@@ -188,39 +265,62 @@ export default function Masterpiece() {
             </div>
 
             {/* Protocol Bar */}
-            <div className="p-6 bg-card border border-border rounded-sm">
-              <div className="flex items-center justify-between mb-4">
-                <span className="ui-label text-muted-foreground">The Protocol</span>
-                <span className={`ui-label ${isUnlocked ? 'text-accent' : 'text-muted-foreground'}`}>
-                  {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
-                </span>
+            {!isEnded && (
+              <div className="p-6 bg-card border border-border rounded-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="ui-label text-muted-foreground">The Protocol</span>
+                  <span className={`ui-label ${isUnlocked ? 'text-accent' : 'text-muted-foreground'}`}>
+                    {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                  </span>
+                </div>
+                <ProtocolBar
+                  currentBidders={auction.unique_bidder_count}
+                  requiredBidders={auction.required_bidders}
+                  status={auction.status as AuctionStatus}
+                  size="lg"
+                />
+                <p className="ui-caption mt-4">
+                  {isUnlocked 
+                    ? 'This piece has been unlocked. The highest bidder will acquire it when the timer ends.'
+                    : `${auction.required_bidders - auction.unique_bidder_count} more collector${auction.required_bidders - auction.unique_bidder_count !== 1 ? 's' : ''} needed to unlock this piece.`
+                  }
+                </p>
               </div>
-              <ProtocolBar
-                currentBidders={auction.unique_bidder_count}
-                requiredBidders={auction.required_bidders}
-                status={auction.status as AuctionStatus}
-                size="lg"
-              />
-              <p className="ui-caption mt-4">
-                {isUnlocked 
-                  ? 'This piece has been unlocked. The highest bidder will acquire it when the timer ends.'
-                  : `${auction.required_bidders - auction.unique_bidder_count} more collector${auction.required_bidders - auction.unique_bidder_count !== 1 ? 's' : ''} needed to unlock this piece.`
-                }
-              </p>
-            </div>
+            )}
+            {isEnded && auction.status === 'SOLD' && (
+              <div className="p-6 bg-card border border-border rounded-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="ui-label text-muted-foreground">Archive Status</span>
+                  <span className="ui-label text-accent">SOLD</span>
+                </div>
+                <p className="ui-caption text-muted-foreground">
+                  This piece is part of our archive collection. It serves as a reference for the quality and value of pieces available on The Floor. Browse active auctions to place your bid.
+                </p>
+              </div>
+            )}
 
             {/* Price & Timer */}
             <div className="grid grid-cols-2 gap-6">
               <div className="p-6 bg-card border border-border rounded-sm">
                 <span className="ui-label text-muted-foreground block mb-2">
-                  {isUnlocked ? 'Current Bid' : 'Starting Price'}
+                  {auction.status === 'SOLD' 
+                    ? 'Final Price' 
+                    : isUnlocked 
+                      ? 'Current Bid' 
+                      : 'Starting Price'
+                  }
                 </span>
                 <span className="heading-display text-3xl text-accent">
                   €{auction.current_price.toLocaleString()}
                 </span>
-                {bids.length > 0 && (
+                {bids.length > 0 && !isEnded && (
                   <span className="ui-caption block mt-1">
                     {bids.length} bid{bids.length !== 1 ? 's' : ''} placed
+                  </span>
+                )}
+                {isEnded && auction.status === 'SOLD' && bids.length > 0 && (
+                  <span className="ui-caption block mt-1 text-muted-foreground">
+                    Sold to highest bidder
                   </span>
                 )}
               </div>
@@ -248,34 +348,65 @@ export default function Masterpiece() {
             {/* Bid Action */}
             {!isEnded && (
               <div className="p-6 bg-card border border-accent/30 rounded-sm">
-                <div className="flex items-center justify-between mb-4">
+                <div className="space-y-4">
                   <div>
-                    <span className="ui-label text-muted-foreground block mb-1">
-                      Minimum Bid
-                    </span>
-                    <span className="heading-display text-2xl">
-                      €{minBid.toLocaleString()}
-                    </span>
+                    <label htmlFor="bidAmount" className="ui-label text-muted-foreground block mb-2">
+                      Enter Your Bid
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-serif">
+                          €
+                        </span>
+                        <Input
+                          id="bidAmount"
+                          type="number"
+                          min={auction.current_price + 1}
+                          step="1"
+                          value={bidAmount}
+                          onChange={handleBidAmountChange}
+                          onBlur={() => validateBidAmount(bidAmount)}
+                          placeholder={minBid.toString()}
+                          className="pl-8 text-lg font-serif h-14 bg-background border-accent/50 focus:border-accent"
+                          disabled={placeBid.isPending || !user}
+                        />
+                      </div>
+                      <Button 
+                        size="lg"
+                        onClick={handlePlaceBid}
+                        disabled={placeBid.isPending || !user || !!bidError}
+                        className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6 h-14"
+                      >
+                        <span className="ui-label text-sm">
+                          {placeBid.isPending ? 'Placing...' : 'Place Bid'}
+                        </span>
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                    {bidError && (
+                      <p className="ui-caption text-destructive mt-2">
+                        {bidError}
+                      </p>
+                    )}
+                    {!bidError && bidAmount && parseFloat(bidAmount) > auction.current_price && (
+                      <p className="ui-caption text-muted-foreground mt-2">
+                        Current price: €{auction.current_price.toLocaleString()} • Your bid: €{parseFloat(bidAmount).toLocaleString()}
+                      </p>
+                    )}
                   </div>
-                  <Button 
-                    size="lg"
-                    onClick={handlePlaceBid}
-                    disabled={placeBid.isPending}
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6 h-auto"
-                  >
-                    <span className="ui-label text-sm">
-                      {placeBid.isPending ? 'Placing...' : 'Place Bid'}
-                    </span>
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  <div className="pt-2 border-t border-border">
+                    <p className="ui-caption text-muted-foreground">
+                      Minimum bid: €{minBid.toLocaleString()} (€{auction.current_price.toLocaleString()} + €100)
+                    </p>
+                  </div>
                 </div>
                 {!user && (
-                  <p className="ui-caption text-muted-foreground">
+                  <p className="ui-caption text-muted-foreground mt-4">
                     <Link href="/auth" className="text-accent hover:underline">Sign in</Link> to place a bid
                   </p>
                 )}
                 {user && !isUnlocked && (
-                  <p className="ui-caption text-accent/80">
+                  <p className="ui-caption text-accent/80 mt-4">
                     Your bid will help unlock this piece. Funds are held until auction ends.
                   </p>
                 )}

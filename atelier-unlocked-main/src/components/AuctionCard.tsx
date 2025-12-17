@@ -38,7 +38,9 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
   const heights = ['aspect-[3/4]', 'aspect-[2/3]', 'aspect-[4/5]', 'aspect-[3/5]'];
   const heightClass = heights[index % heights.length];
 
-  const designerName = auction.designer?.display_name || 'Unknown Designer';
+  // Use designer_name from auction if available, otherwise use profile display_name
+  // This allows archive items to show different designer names
+  const designerName = auction.designer_name || auction.designer?.display_name || 'Unknown Designer';
   const imageUrl = auction.images?.[0] || '/placeholder.svg';
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -60,12 +62,12 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
 
   return (
     <>
-      <Link 
-        href={`/piece/${auction.id}`}
-        className="masonry-item group block opacity-0 animate-fade-up"
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        <div className="relative overflow-hidden bg-card rounded-sm">
+    <Link 
+      href={`/piece/${auction.id}`}
+      className="masonry-item group block opacity-0 animate-fade-up"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="relative overflow-hidden bg-card rounded-sm">
         {/* Image */}
         <div className={`${heightClass} relative overflow-hidden`}>
           <img
@@ -105,10 +107,17 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
 
           {/* Ended Overlay */}
           {isEnded && (
-            <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-              <span className="ui-label text-lg">
-                {auction.status === 'SOLD' ? 'SOLD' : 'ENDED'}
-              </span>
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-center">
+                <span className="ui-label text-lg font-semibold block mb-1">
+                  {auction.status === 'SOLD' ? 'SOLD' : 'ENDED'}
+                </span>
+                {auction.status === 'SOLD' && (
+                  <span className="ui-caption text-xs text-muted-foreground">
+                    Archive Reference
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -121,15 +130,27 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
           </span>
 
           {/* Title */}
-          <h3 className="font-serif text-lg leading-tight group-hover:text-accent transition-colors duration-300">
-            {auction.title}
-          </h3>
+          <div className="space-y-1">
+            <h3 className="font-serif text-lg leading-tight group-hover:text-accent transition-colors duration-300">
+              {auction.title}
+            </h3>
+            {auction.status === 'SOLD' && (
+              <span className="ui-caption text-xs text-muted-foreground italic">
+                Archive • Reference Piece
+              </span>
+            )}
+          </div>
 
           {/* Price & Timer Row */}
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div>
               <span className="ui-label text-muted-foreground block mb-0.5">
-                {isUnlocked ? 'Current Bid' : 'Starting'}
+                {auction.status === 'SOLD' 
+                  ? 'Final Price' 
+                  : isUnlocked 
+                    ? 'Current Bid' 
+                    : 'Starting'
+                }
               </span>
               <span className="font-serif text-xl">
                 €{auction.current_price.toLocaleString()}

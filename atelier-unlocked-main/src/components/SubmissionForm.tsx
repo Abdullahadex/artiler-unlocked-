@@ -296,18 +296,18 @@ export default function SubmissionForm() {
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
               <Label htmlFor="startPrice" className="ui-label text-sm sm:text-base text-accent">
                 Starting Bid *
-              </Label>
+          </Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
-                  <Input
-                    id="startPrice"
-                    type="number"
-                    min="0"
+          <Input
+            id="startPrice"
+            type="number"
+            min="0"
                     step="0.01"
-                    value={formData.startPrice}
-                    onChange={(e) => setFormData({ ...formData, startPrice: e.target.value })}
+            value={formData.startPrice}
+            onChange={(e) => setFormData({ ...formData, startPrice: e.target.value })}
                     placeholder="2800.00"
-                    required
+            required
                     className="bg-card border-accent/50 focus:border-accent text-base sm:text-lg font-serif"
                   />
                 </div>
@@ -333,15 +333,15 @@ export default function SubmissionForm() {
                 </p>
               )}
               <p className="ui-caption text-xs sm:text-sm">Price will be converted to EUR for display</p>
-            </div>
-            <div className="space-y-2">
+        </div>
+        <div className="space-y-2">
               <Label htmlFor="requiredBidders" className="ui-label text-sm sm:text-base">
                 Required Bidders
-              </Label>
+          </Label>
               <div className="relative">
-                <Input
-                  id="requiredBidders"
-                  type="number"
+          <Input
+            id="requiredBidders"
+            type="number"
                   value="3"
                   readOnly
                   disabled
@@ -352,20 +352,20 @@ export default function SubmissionForm() {
                 </div>
               </div>
               <p className="ui-caption text-xs sm:text-sm">3 unique bidders required to unlock (compulsory)</p>
-            </div>
-            <div className="space-y-2">
+        </div>
+        <div className="space-y-2">
               <Label htmlFor="endTime" className="ui-label text-sm sm:text-base">
-                Auction End Date
-              </Label>
-              <Input
-                id="endTime"
-                type="datetime-local"
-                value={formData.endTime}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                min={new Date().toISOString().slice(0, 16)}
+            Auction End Date
+          </Label>
+          <Input
+            id="endTime"
+            type="datetime-local"
+            value={formData.endTime}
+            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+            min={new Date().toISOString().slice(0, 16)}
                 max={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                 className="bg-card border-border focus:border-accent text-sm sm:text-base"
-              />
+          />
               <p className="ui-caption text-xs sm:text-sm">Maximum 3 days from now (defaults to 3 days)</p>
             </div>
           </div>

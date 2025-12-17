@@ -6,6 +6,7 @@ export type UserRole = Enums<'user_role'>;
 
 export type Auction = Tables<'auctions'> & {
   designer?: Tables<'profiles'>;
+  designer_name?: string | null; // Optional field for archive items to show different designer names
 };
 
 export type Bid = Tables<'bids'> & {

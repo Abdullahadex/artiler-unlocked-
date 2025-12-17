@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Profile } from '@/types/database';
@@ -27,23 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const supabase = getSupabaseClient();
   const configured = supabase !== null;
-
-  const fetchProfile = useCallback(async (userId: string) => {
-    if (!supabase) return;
-    
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    setProfile(data);
-  }, [supabase]);
-
-  const refreshProfile = useCallback(async () => {
-    if (!user || !supabase) return;
-    await fetchProfile(user.id);
-  }, [user, supabase, fetchProfile]);
 
   useEffect(() => {
     // If Supabase is not configured, just set loading to false and return
@@ -80,9 +63,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile]);
+  }, [supabase]);
 
-  const signUp = async (email: string, password: string, displayName?: string, role?: 'collector' | 'designer') => {
+  const fetchProfile = async (userId: string) => {
+    if (!supabase) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    setProfile(data);
+  };
+
+  const signUp = async (email: string, password: string, displayName?: string, role: 'collector' | 'designer' = 'collector') => {
     if (!supabase) {
       return { error: new Error('Authentication not configured') };
     }
@@ -96,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           display_name: displayName || email.split('@')[0],
-          role: role || 'collector',
+          role: role,
         },
       },
     });
@@ -122,6 +117,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     await supabase.auth.signOut();
     setProfile(null);
+  };
+
+  const refreshProfile = async () => {
+    if (!supabase || !user) return;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    
+    if (!error && data) {
+      setProfile(data);
+    }
   };
 
   return (

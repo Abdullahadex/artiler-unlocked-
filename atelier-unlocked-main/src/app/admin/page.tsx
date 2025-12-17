@@ -43,9 +43,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Wait for auth to finish loading before checking role
     if (!authLoading) {
-      if (!user || profile?.role !== 'admin') {
-        router.push('/');
-      }
+    if (!user || profile?.role !== 'admin') {
+      router.push('/');
+    }
     }
   }, [user, profile, router, authLoading]);
 

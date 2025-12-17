@@ -151,17 +151,17 @@ export const useDeleteAuction = (isAdmin: boolean = false) => {
 
       // If not admin, check if user is the designer
       if (!isAdmin) {
-        if (auction.designer_id !== user.id) {
-          throw new Error('You can only delete your own auctions');
-        }
+      if (auction.designer_id !== user.id) {
+        throw new Error('You can only delete your own auctions');
+      }
 
-        if (auction.status !== 'LOCKED') {
-          throw new Error('Can only delete LOCKED auctions. Once bids are placed, auctions cannot be removed.');
-        }
+      if (auction.status !== 'LOCKED') {
+        throw new Error('Can only delete LOCKED auctions. Once bids are placed, auctions cannot be removed.');
+      }
 
-        if (auction.unique_bidder_count > 0) {
-          throw new Error('Cannot delete auction with existing bids');
-        }
+      if (auction.unique_bidder_count > 0) {
+        throw new Error('Cannot delete auction with existing bids');
+      }
       }
       // Admins can delete any auction regardless of status or bids
 

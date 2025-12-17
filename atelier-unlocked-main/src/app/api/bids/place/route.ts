@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-
+    
     // Create response object to hold cookies
     const response = new NextResponse();
     

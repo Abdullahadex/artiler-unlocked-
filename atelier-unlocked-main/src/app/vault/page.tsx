@@ -148,7 +148,7 @@ export default function Vault() {
                     {isDesigner 
                       ? 'Your creative workspace at ATELIER' 
                       : 'Your personal sanctuary at ATELIER'}
-                  </p>
+              </p>
                   <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-block px-3 py-1 text-xs rounded-full ${
                 isDesigner 
@@ -515,7 +515,7 @@ const BecomeDesignerSection = () => {
             message: checkError.message || 'Unknown error',
             code: checkError.code || 'UNKNOWN',
           };
-          
+        
           // Only throw if it's not a "not found" error
           if (checkError.code !== 'PGRST116' && !checkError.message?.includes('not found')) {
           throw new Error(`Failed to check profile: ${errorInfo.message} (Code: ${errorInfo.code})`);
