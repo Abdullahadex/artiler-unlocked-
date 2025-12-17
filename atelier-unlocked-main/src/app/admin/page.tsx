@@ -89,17 +89,17 @@ export default function AdminDashboard() {
 
   const exportData = (type: 'auctions' | 'users' | 'bids') => {
     try {
-      let data: any[] = [];
+      let data: unknown[] = [];
       let filename = '';
 
       if (type === 'auctions') {
-        data = auctions || [];
+        data = (auctions || []) as unknown[];
         filename = 'auctions.json';
       } else if (type === 'users') {
-        data = analytics?.users || [];
+        data = (analytics?.users || []) as unknown[];
         filename = 'users.json';
       } else if (type === 'bids') {
-        data = analytics?.bids || [];
+        data = (analytics?.bids || []) as unknown[];
         filename = 'bids.json';
       }
 
