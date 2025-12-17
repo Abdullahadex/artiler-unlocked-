@@ -195,9 +195,9 @@ export default function SubmissionForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 w-full max-w-full overflow-x-hidden">
       <div className="space-y-2">
-        <Label htmlFor="title" className="ui-label">
+        <Label htmlFor="title" className="ui-label text-sm sm:text-base">
           Piece Title *
         </Label>
         <Input
@@ -206,12 +206,12 @@ export default function SubmissionForm() {
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="e.g., Midnight Velvet Gown"
           required
-          className="bg-card border-border focus:border-accent"
+          className="bg-card border-border focus:border-accent text-sm sm:text-base"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="ui-label">
+        <Label htmlFor="description" className="ui-label text-sm sm:text-base">
           Description
         </Label>
         <Textarea
@@ -220,15 +220,15 @@ export default function SubmissionForm() {
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Describe your piece in detail..."
           rows={4}
-          className="bg-card border-border focus:border-accent resize-none"
+          className="bg-card border-border focus:border-accent resize-none text-sm sm:text-base"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="ui-label">
+        <Label className="ui-label text-sm sm:text-base">
           Images * (At least 1 required)
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           {images.map((image, index) => (
             <div key={index} className="relative aspect-square group">
               <img
@@ -262,9 +262,9 @@ export default function SubmissionForm() {
         <p className="ui-caption">Upload up to 5 images. First image will be the main display.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-2">
-          <Label htmlFor="materials" className="ui-label">
+          <Label htmlFor="materials" className="ui-label text-sm sm:text-base">
             Materials
           </Label>
           <Input
@@ -272,11 +272,11 @@ export default function SubmissionForm() {
             value={formData.materials}
             onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
             placeholder="e.g., 100% Silk Velvet, Swarovski Crystals"
-            className="bg-card border-border focus:border-accent"
+            className="bg-card border-border focus:border-accent text-sm sm:text-base"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="sizing" className="ui-label">
+          <Label htmlFor="sizing" className="ui-label text-sm sm:text-base">
             Sizing
           </Label>
           <Input
@@ -284,20 +284,20 @@ export default function SubmissionForm() {
             value={formData.sizing}
             onChange={(e) => setFormData({ ...formData, sizing: e.target.value })}
             placeholder="e.g., EU 36-42 | Made to Order"
-            className="bg-card border-border focus:border-accent"
+            className="bg-card border-border focus:border-accent text-sm sm:text-base"
           />
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="p-6 bg-accent/10 border border-accent/30 rounded-sm">
-          <h3 className="heading-display text-xl mb-4 text-accent">Auction Pricing</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="startPrice" className="ui-label text-accent">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="p-4 sm:p-6 bg-accent/10 border border-accent/30 rounded-sm">
+          <h3 className="heading-display text-lg sm:text-xl mb-3 sm:mb-4 text-accent">Auction Pricing</h3>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+              <Label htmlFor="startPrice" className="ui-label text-sm sm:text-base text-accent">
                 Starting Bid *
               </Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                   <Input
                     id="startPrice"
@@ -308,14 +308,14 @@ export default function SubmissionForm() {
                     onChange={(e) => setFormData({ ...formData, startPrice: e.target.value })}
                     placeholder="2800.00"
                     required
-                    className="bg-card border-accent/50 focus:border-accent text-lg font-serif"
+                    className="bg-card border-accent/50 focus:border-accent text-base sm:text-lg font-serif"
                   />
                 </div>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) => setFormData({ ...formData, currency: value })}
                 >
-                  <SelectTrigger className="w-32 bg-card border-accent/50 focus:border-accent">
+                  <SelectTrigger className="w-full sm:w-32 bg-card border-accent/50 focus:border-accent">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,14 +328,14 @@ export default function SubmissionForm() {
                 </Select>
               </div>
               {formData.startPrice && !isNaN(parseFloat(formData.startPrice)) && formData.currency !== 'EUR' && (
-                <p className="ui-caption text-accent">
+                <p className="ui-caption text-xs sm:text-sm text-accent">
                   ≈ €{Math.round(convertToEUR(parseFloat(formData.startPrice), formData.currency)).toLocaleString()} EUR
                 </p>
               )}
-              <p className="ui-caption">Price will be converted to EUR for display</p>
+              <p className="ui-caption text-xs sm:text-sm">Price will be converted to EUR for display</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="requiredBidders" className="ui-label">
+              <Label htmlFor="requiredBidders" className="ui-label text-sm sm:text-base">
                 Required Bidders
               </Label>
               <div className="relative">
@@ -345,16 +345,16 @@ export default function SubmissionForm() {
                   value="3"
                   readOnly
                   disabled
-                  className="bg-muted border-border text-muted-foreground cursor-not-allowed"
+                  className="bg-muted border-border text-muted-foreground cursor-not-allowed text-sm sm:text-base"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   <span className="ui-label text-xs text-muted-foreground">Fixed</span>
                 </div>
               </div>
-              <p className="ui-caption">3 unique bidders required to unlock (compulsory)</p>
+              <p className="ui-caption text-xs sm:text-sm">3 unique bidders required to unlock (compulsory)</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime" className="ui-label">
+              <Label htmlFor="endTime" className="ui-label text-sm sm:text-base">
                 Auction End Date
               </Label>
               <Input
@@ -364,36 +364,36 @@ export default function SubmissionForm() {
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 min={new Date().toISOString().slice(0, 16)}
                 max={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                className="bg-card border-border focus:border-accent"
+                className="bg-card border-border focus:border-accent text-sm sm:text-base"
               />
-              <p className="ui-caption">Maximum 3 days from now (defaults to 3 days)</p>
+              <p className="ui-caption text-xs sm:text-sm">Maximum 3 days from now (defaults to 3 days)</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-6"
+          className="bg-accent hover:bg-accent/90 text-accent-foreground px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
         >
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              <span className="ui-label">Submitting...</span>
+              <span className="ui-label text-sm sm:text-base">Submitting...</span>
             </>
           ) : (
-            <span className="ui-label">Submit Piece</span>
+            <span className="ui-label text-sm sm:text-base">Submit Piece</span>
           )}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push('/vault')}
-          className="px-8 py-6"
+          className="px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
         >
-          <span className="ui-label">Cancel</span>
+          <span className="ui-label text-sm sm:text-base">Cancel</span>
         </Button>
       </div>
     </form>

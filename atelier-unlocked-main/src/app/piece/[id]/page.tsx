@@ -70,7 +70,10 @@ export default function Masterpiece() {
   }
 
   const isUnlocked = auction.status === 'UNLOCKED' || auction.status === 'SOLD';
-  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || isExpired;
+  // LOCKED auctions should never show as ended, even if end_time has passed
+  // They're waiting for bids to unlock. Only UNLOCKED auctions can be ended by time.
+  const isEnded = auction.status === 'SOLD' || auction.status === 'VOID' || 
+    (auction.status === 'UNLOCKED' && isExpired);
   const minBid = auction.current_price + 100;
   const designerName = auction.designer?.display_name || 'Unknown Designer';
   const imageUrl = auction.images?.[0] || '/placeholder.svg';

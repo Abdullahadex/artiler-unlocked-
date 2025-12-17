@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import ProfileEditDialog from '@/components/ProfileEditDialog';
 
 export default function Vault() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -125,27 +126,30 @@ export default function Vault() {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-16">
-      <div className="container mx-auto px-6">
+    <div className="min-h-screen bg-background pt-24 pb-16 overflow-x-hidden">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl w-full">
         {/* Profile Header */}
         <div className="mb-12 animate-fade-up">
-          <div className="flex items-start gap-6">
-            <div className="w-20 h-20 rounded-full bg-card border border-border flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+            <div className="w-20 h-20 rounded-full bg-card border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-8 h-8 text-muted-foreground" />
               )}
             </div>
-            <div className="flex-1">
-              <h1 className="heading-display text-3xl md:text-4xl mb-2">
-                {isDesigner ? `${profile?.display_name || 'Designer'}'s Studio` : (profile?.display_name || 'The Vault')}
+            <div className="flex-1 min-w-0 w-full">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="heading-display text-2xl sm:text-3xl md:text-4xl mb-2 break-words">
+                    {isDesigner ? `${profile?.display_name || 'Designer'}'s Studio` : (profile?.display_name || 'The Vault')}
               </h1>
-              <p className="ui-caption mb-2">
-                {isDesigner 
-                  ? 'Your creative workspace at ATELIER' 
-                  : 'Your personal sanctuary at ATELIER'}
-              </p>
+                  <p className="ui-caption mb-2 text-sm sm:text-base">
+                    {isDesigner 
+                      ? 'Your creative workspace at ATELIER' 
+                      : 'Your personal sanctuary at ATELIER'}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-block px-3 py-1 text-xs rounded-full ${
                 isDesigner 
                   ? 'bg-accent/20 text-accent' 
@@ -153,11 +157,15 @@ export default function Vault() {
               }`}>
                 {isDesigner ? 'Designer' : 'Collector'}
               </span>
-              {isDesigner && (
-                <p className="ui-caption mt-3 text-accent/80">
-                  Upload and manage your exclusive pieces
-                </p>
-              )}
+                    <ProfileEditDialog />
+                  </div>
+                  {isDesigner && (
+                    <p className="ui-caption mt-3 text-accent/80 text-sm sm:text-base">
+                      Upload and manage your exclusive pieces
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -189,7 +197,7 @@ export default function Vault() {
         <div className="animate-fade-up delay-200">
           {isDesigner ? (
             <Tabs defaultValue="submit" className="w-full">
-              <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-8 h-auto pb-0">
+              <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-4 sm:gap-8 h-auto pb-0 overflow-x-auto">
                 <TabsTrigger 
                   value="portfolio" 
                   className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
@@ -206,7 +214,8 @@ export default function Vault() {
                   value="submit" 
                   className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
                 >
-                  Submit New
+                  <span className="hidden sm:inline">Submit New</span>
+                  <span className="sm:hidden">Submit</span>
                 </TabsTrigger>
               </TabsList>
               
@@ -231,19 +240,21 @@ export default function Vault() {
                 </div>
               </TabsContent>
               
-              <TabsContent value="submit" className="pt-8">
-                <div className="mb-8 p-6 bg-accent/5 border border-accent/20 rounded-sm">
-                  <h2 className="heading-display text-2xl mb-2">Submit Your Piece</h2>
-                  <p className="ui-caption">
+              <TabsContent value="submit" className="pt-4 sm:pt-8">
+                <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-accent/5 border border-accent/20 rounded-sm">
+                  <h2 className="heading-display text-xl sm:text-2xl mb-2">Submit Your Piece</h2>
+                  <p className="ui-caption text-sm sm:text-base">
                     Upload your exclusive piece to The Floor. Set your starting bid and watch collectors unlock it through their desire.
                   </p>
                 </div>
+                <div className="overflow-x-hidden">
                 <SubmissionForm />
+                </div>
               </TabsContent>
             </Tabs>
           ) : (
             <Tabs defaultValue="watching" className="w-full">
-              <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-8 h-auto pb-0">
+              <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start gap-4 sm:gap-8 h-auto pb-0 overflow-x-auto">
                 <TabsTrigger 
                   value="watching" 
                   className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
@@ -257,12 +268,12 @@ export default function Vault() {
                   Acquisitions
                 </TabsTrigger>
                 {!isDesigner && (
-                  <TabsTrigger 
-                    value="become-designer" 
-                    className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
-                  >
-                    Become Designer
-                  </TabsTrigger>
+                <TabsTrigger 
+                  value="become-designer" 
+                  className="ui-label data-[state=active]:text-accent data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none bg-transparent pb-3"
+                >
+                  Become Designer
+                </TabsTrigger>
                 )}
               </TabsList>
               
@@ -380,42 +391,42 @@ const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridP
 
   return (
     <>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map((item) => (
           <div
             key={item.id}
             className="group bg-card border border-border rounded-sm overflow-hidden hover:border-accent transition-colors duration-300 relative"
           >
-            <Link
-              href={`/piece/${item.id}`}
+        <Link
+          href={`/piece/${item.id}`}
               className="block"
-            >
-              <div className="aspect-[4/3] overflow-hidden">
-                <img
-                  src={item.images?.[0] || '/placeholder.svg'}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-4">
-                <span className="ui-label text-muted-foreground">
-                  {item.designer?.display_name || 'Unknown Designer'}
-                </span>
-                <h3 className="font-serif text-lg mt-1 group-hover:text-accent transition-colors">
-                  {item.title}
-                </h3>
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
-                  <span className="font-serif">€{item.current_price.toLocaleString()}</span>
-                  <span className={`ui-label text-xs ${
-                    item.status === 'SOLD' ? 'text-accent' : 
-                    item.status === 'UNLOCKED' ? 'text-accent' : 
-                    'text-muted-foreground'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            </Link>
+        >
+          <div className="aspect-[4/3] overflow-hidden">
+            <img
+              src={item.images?.[0] || '/placeholder.svg'}
+              alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+          <div className="p-4">
+            <span className="ui-label text-muted-foreground">
+              {item.designer?.display_name || 'Unknown Designer'}
+            </span>
+            <h3 className="font-serif text-lg mt-1 group-hover:text-accent transition-colors">
+              {item.title}
+            </h3>
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
+              <span className="font-serif">€{item.current_price.toLocaleString()}</span>
+              <span className={`ui-label text-xs ${
+                item.status === 'SOLD' ? 'text-accent' : 
+                item.status === 'UNLOCKED' ? 'text-accent' : 
+                'text-muted-foreground'
+              }`}>
+                {item.status}
+              </span>
+            </div>
+          </div>
+        </Link>
             
             {showDelete && item.status === 'LOCKED' && (
               <button
@@ -427,8 +438,8 @@ const ItemGrid = ({ items, emptyText, isLoading, showDelete = false }: ItemGridP
               </button>
             )}
           </div>
-        ))}
-      </div>
+      ))}
+    </div>
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
@@ -507,7 +518,7 @@ const BecomeDesignerSection = () => {
           
           // Only throw if it's not a "not found" error
           if (checkError.code !== 'PGRST116' && !checkError.message?.includes('not found')) {
-            throw new Error(`Failed to check profile: ${errorInfo.message} (Code: ${errorInfo.code})`);
+          throw new Error(`Failed to check profile: ${errorInfo.message} (Code: ${errorInfo.code})`);
           }
         }
         // Empty error object is normal for "not found" cases

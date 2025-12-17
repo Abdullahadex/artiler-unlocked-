@@ -1,14 +1,28 @@
 import Link from 'next/link';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock, Unlock, Trash2 } from 'lucide-react';
 import type { Auction } from '@/types/database';
 import { useCountdown } from '@/hooks/useCountdown';
-
-interface AuctionCardProps {
-  auction: Auction;
-  index?: number;
-}
+import { useAuth } from '@/contexts/AuthContext';
+import { useDeleteAuction } from '@/hooks/useAuctions';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const deleteAuction = useDeleteAuction(isAdmin);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  
   const endTime = new Date(auction.end_time);
   const { timeLeft, isExpired } = useCountdown(endTime);
   const isUnlocked = auction.status === 'UNLOCKED' || auction.status === 'SOLD';
@@ -22,13 +36,31 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
   const designerName = auction.designer?.display_name || 'Unknown Designer';
   const imageUrl = auction.images?.[0] || '/placeholder.svg';
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteAuction.mutateAsync(auction.id, isAdmin);
+      toast.success('Auction removed from The Floor');
+      setDeleteConfirmOpen(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete auction';
+      toast.error(errorMessage);
+    }
+  };
+
   return (
-    <Link 
-      href={`/piece/${auction.id}`}
-      className="masonry-item group block opacity-0 animate-fade-up"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <div className="relative overflow-hidden bg-card rounded-sm">
+    <>
+      <Link 
+        href={`/piece/${auction.id}`}
+        className="masonry-item group block opacity-0 animate-fade-up"
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        <div className="relative overflow-hidden bg-card rounded-sm">
         {/* Image */}
         <div className={`${heightClass} relative overflow-hidden`}>
           <img
@@ -54,6 +86,17 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
               <Lock className="w-4 h-4" />
             )}
           </div>
+
+          {/* Admin Delete Button */}
+          {isAdmin && (
+            <button
+              onClick={handleDeleteClick}
+              className="absolute top-4 left-4 w-8 h-8 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              title="Remove from The Floor (Admin)"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Ended Overlay */}
           {isEnded && (
@@ -127,6 +170,28 @@ const AuctionCard = ({ auction, index = 0 }: AuctionCardProps) => {
         </div>
       </div>
     </Link>
+
+    <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove Auction from The Floor?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to remove "{auction.title}" from The Floor? This action cannot be undone. The auction will be permanently removed and will no longer be visible to collectors.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={deleteAuction.isPending}
+          >
+            {deleteAuction.isPending ? 'Removing...' : 'Remove'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 

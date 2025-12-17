@@ -16,26 +16,26 @@ export default function Landing() {
       />
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 md:px-6">
         {/* Logo */}
         <div className="opacity-0 animate-fade-up">
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-wide text-foreground mb-4">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-7xl xl:text-8xl tracking-wide text-foreground mb-4 break-words">
             ATELIER
           </h1>
-          <p className="heading-editorial text-lg md:text-xl text-muted-foreground text-center">
+          <p className="heading-editorial text-base md:text-lg lg:text-xl text-muted-foreground text-center">
             Luxury Validated by Desire
           </p>
         </div>
 
         {/* Divider */}
-        <div className="w-[3px] h-16 bg-gradient-to-b from-transparent via-foreground/70 to-transparent my-12 opacity-0 animate-fade-up delay-200" />
+        <div className="w-[3px] h-12 md:h-16 bg-gradient-to-b from-transparent via-foreground/70 to-transparent my-12 opacity-0 animate-fade-up delay-200" />
 
         {/* Role Selection */}
         <div className="flex flex-col md:flex-row gap-6 md:gap-12 opacity-0 animate-fade-up delay-400">
           {/* Collector Entry */}
           <Link
             href="/floor"
-            className="group relative px-12 py-6 border border-border hover:border-accent transition-all duration-500"
+            className="group relative px-6 md:px-12 py-4 md:py-6 border border-border hover:border-accent transition-all duration-500 w-full md:w-auto"
           >
             <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors duration-500" />
             <div className="relative flex items-center gap-4">
@@ -43,7 +43,7 @@ export default function Landing() {
                 <span className="ui-label text-muted-foreground block mb-1">
                   Browse & Bid
                 </span>
-                <span className="font-serif text-xl md:text-2xl group-hover:text-accent transition-colors duration-300">
+                <span className="font-serif text-lg md:text-xl lg:text-2xl group-hover:text-accent transition-colors duration-300 break-words">
                   Enter as Collector
                 </span>
               </div>
@@ -54,7 +54,7 @@ export default function Landing() {
           {/* Designer Entry */}
           <Link
             href="/vault?role=designer"
-            className="group relative px-12 py-6 border border-border hover:border-foreground transition-all duration-500"
+            className="group relative px-6 md:px-12 py-4 md:py-6 border border-border hover:border-foreground transition-all duration-500 w-full md:w-auto"
           >
             <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-500" />
             <div className="relative flex items-center gap-4">
@@ -62,7 +62,7 @@ export default function Landing() {
                 <span className="ui-label text-muted-foreground block mb-1">
                   Submit & Sell
                 </span>
-                <span className="font-serif text-xl md:text-2xl group-hover:text-foreground transition-colors duration-300">
+                <span className="font-serif text-lg md:text-xl lg:text-2xl group-hover:text-foreground transition-colors duration-300 break-words">
                   Enter as Designer
                 </span>
               </div>
@@ -80,10 +80,10 @@ export default function Landing() {
       </div>
 
       {/* Corner accents - highly visible */}
-      <div className="absolute top-8 left-8 w-16 h-16 border-l-[2px] border-t-[2px] border-foreground/70" />
-      <div className="absolute top-8 right-8 w-16 h-16 border-r-[2px] border-t-[2px] border-foreground/70" />
-      <div className="absolute bottom-8 left-8 w-16 h-16 border-l-[2px] border-b-[2px] border-foreground/70" />
-      <div className="absolute bottom-8 right-8 w-16 h-16 border-r-[2px] border-b-[2px] border-foreground/70" />
+      <div className="absolute top-4 md:top-8 left-4 md:left-8 w-12 h-12 md:w-16 md:h-16 border-l-[2px] border-t-[2px] border-foreground/70" />
+      <div className="absolute top-4 md:top-8 right-4 md:right-8 w-12 h-12 md:w-16 md:h-16 border-r-[2px] border-t-[2px] border-foreground/70" />
+      <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 w-12 h-12 md:w-16 md:h-16 border-l-[2px] border-b-[2px] border-foreground/70" />
+      <div className="absolute bottom-4 md:bottom-8 right-4 md:right-8 w-12 h-12 md:w-16 md:h-16 border-r-[2px] border-b-[2px] border-foreground/70" />
       
       {/* Edge lines - highly visible */}
       <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-foreground/60 to-transparent" />

@@ -4,34 +4,61 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuctions } from '@/hooks/useAuctions';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Users, Package, TrendingUp, AlertCircle, Download, RefreshCw, BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
-  const { data: auctions, isLoading, refetch } = useAuctions();
+  const queryClient = useQueryClient();
+  const { data: auctions, isLoading, refetch: refetchAuctions } = useAuctions();
   const [selectedTab, setSelectedTab] = useState('overview');
 
+  // Refresh profile on mount to ensure we have the latest role
+  useEffect(() => {
+    if (user && !authLoading) {
+      refreshProfile();
+    }
+  }, [user, authLoading, refreshProfile]);
+
   // Fetch analytics data
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading, refetch: refetchAnalytics } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: async () => {
       const res = await fetch('/api/analytics/dashboard');
-      if (!res.ok) throw new Error('Failed to fetch analytics');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to fetch analytics');
+      }
       return res.json();
     },
     enabled: !!user && profile?.role === 'admin',
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
-    if (!user || profile?.role !== 'admin') {
-      router.push('/');
+    // Wait for auth to finish loading before checking role
+    if (!authLoading) {
+      if (!user || profile?.role !== 'admin') {
+        router.push('/');
+      }
     }
-  }, [user, profile, router]);
+  }, [user, profile, router, authLoading]);
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <p className="ui-label text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || profile?.role !== 'admin') {
     return null;
@@ -44,13 +71,67 @@ export default function AdminDashboard() {
     totalRevenue: auctions?.filter(a => a.status === 'SOLD').reduce((acc, a) => acc + a.current_price, 0) || 0,
     totalUsers: analytics?.totalUsers || 0,
     totalBids: analytics?.totalBids || 0,
-    conversionRate: analytics?.conversionRate || 0,
+    conversionRate: analytics?.conversionRate || '0',
     averageBidAmount: analytics?.averageBidAmount || 0,
   };
 
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        refetchAuctions(),
+        refetchAnalytics(),
+      ]);
+      toast.success('Data refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh data');
+    }
+  };
+
   const exportData = (type: 'auctions' | 'users' | 'bids') => {
-    // In production, this would generate and download CSV/JSON
-    console.log(`Exporting ${type}...`);
+    try {
+      let data: any[] = [];
+      let filename = '';
+
+      if (type === 'auctions') {
+        data = auctions || [];
+        filename = 'auctions.json';
+      } else if (type === 'users') {
+        data = analytics?.users || [];
+        filename = 'users.json';
+      } else if (type === 'bids') {
+        data = analytics?.bids || [];
+        filename = 'bids.json';
+      }
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${type} data`);
+    } catch (error) {
+      toast.error('Failed to export data');
+    }
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'auctions':
+        setSelectedTab('auctions');
+        break;
+      case 'users':
+        setSelectedTab('users');
+        break;
+      case 'analytics':
+        setSelectedTab('analytics');
+        break;
+      default:
+        toast.info(`${action} feature coming soon`);
+    }
   };
 
   return (
@@ -59,8 +140,13 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="heading-display text-4xl">Admin Dashboard</h1>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isLoading || analyticsLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${(isLoading || analyticsLoading) ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportData('auctions')}>
@@ -145,15 +231,27 @@ export default function AdminDashboard() {
               <div className="p-6 bg-card border border-border rounded-sm">
                 <h3 className="heading-display text-xl mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction('auctions')}
+                  >
                     <Package className="w-4 h-4 mr-2" />
                     Manage Auctions
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction('users')}
+                  >
                     <Users className="w-4 h-4 mr-2" />
                     Manage Users
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction('analytics')}
+                  >
                     <BarChart3 className="w-4 h-4 mr-2" />
                     View Reports
                   </Button>

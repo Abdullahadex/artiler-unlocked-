@@ -11,7 +11,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   configured: boolean;
-  signUp: (email: string, password: string, displayName?: string, role?: 'collector' | 'designer') => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,44 +31,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = useCallback(async (userId: string) => {
     if (!supabase) return;
     
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (data) {
-        setProfile(data);
-      } else {
-        setProfile(null);
-      }
-    } catch (err) {
-      setProfile(null);
-    }
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    setProfile(data);
   }, [supabase]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!user || !supabase) return;
+    await fetchProfile(user.id);
+  }, [user, supabase, fetchProfile]);
+
   useEffect(() => {
+    // If Supabase is not configured, just set loading to false and return
     if (!supabase) {
       setLoading(false);
       return;
     }
     
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Defer profile fetch with setTimeout to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
             fetchProfile(session.user.id);
-          }, 1000);
+          }, 0);
         } else {
           setProfile(null);
         }
       }
     );
 
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -81,57 +82,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [supabase, fetchProfile]);
 
-  const signUp = async (email: string, password: string, displayName?: string, role: 'collector' | 'designer' = 'collector') => {
+  const signUp = async (email: string, password: string, displayName?: string) => {
     if (!supabase) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-      const errorMsg = !url && !key 
-        ? 'Authentication not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment variables.'
-        : !url 
-        ? 'NEXT_PUBLIC_SUPABASE_URL is missing. Please set it in your environment variables.'
-        : !key 
-        ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing. Please set it in your environment variables.'
-        : 'Authentication not configured. Please check your Supabase environment variables.';
-      return { error: new Error(errorMsg) };
+      return { error: new Error('Authentication not configured') };
     }
     
     const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : '/';
     
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
           display_name: displayName || email.split('@')[0],
-          role: role,
         },
       },
     });
-    
-    // If signup successful and user is created, wait for profile to be created by trigger
-    if (!error && data.user) {
-      // Wait a bit for the database trigger to create the profile
-      setTimeout(() => {
-        fetchProfile(data.user.id);
-      }, 500);
-    }
     
     return { error: error as Error | null };
   };
 
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-      const errorMsg = !url && !key 
-        ? 'Authentication not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment variables.'
-        : !url 
-        ? 'NEXT_PUBLIC_SUPABASE_URL is missing. Please set it in your environment variables.'
-        : !key 
-        ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing. Please set it in your environment variables.'
-        : 'Authentication not configured. Please check your Supabase environment variables.';
-      return { error: new Error(errorMsg) };
+      return { error: new Error('Authentication not configured') };
     }
     
     const { error } = await supabase.auth.signInWithPassword({
@@ -147,11 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     await supabase.auth.signOut();
     setProfile(null);
-  };
-
-  const refreshProfile = async () => {
-    if (!user || !supabase) return;
-    await fetchProfile(user.id);
   };
 
   return (
