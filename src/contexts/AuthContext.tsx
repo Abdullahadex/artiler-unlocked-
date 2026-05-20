@@ -171,7 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .eq('id', user.id);
     
-    if (!error) await refreshProfile();
+    if (!error) {
+      // Refresh profile asynchronously; don't block the UI
+      refreshProfile().catch(err => console.error('Profile refresh failed:', err));
+    }
     return { error: error as Error | null };
   }, [supabase, user, refreshProfile]);
 
