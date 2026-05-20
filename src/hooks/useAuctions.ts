@@ -1,0 +1,302 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { Auction, Database } from '@/types/database';
+import type { TablesInsert } from '@/integrations/supabase/types';
+import { useEffect } from 'react';
+
+export const useAuctions = () => {
+  const supabase = getSupabaseClient();
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('public:all-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'auctions' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['auctions'] });
+          queryClient.invalidateQueries({ queryKey: ['auction'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bids' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['auctions'] });
+          queryClient.invalidateQueries({ queryKey: ['auction'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, queryClient]);
+  
+  return useQuery({
+    queryKey: ['auctions'],
+    queryFn: async () => {
+      if (!supabase) {
+        return [] as Auction[];
+      }
+      
+      const { data, error } = await supabase
+        .from('auctions')
+        .select(`
+          *,
+          designer:profiles!auctions_designer_id_fkey(*),
+          winner:profiles!auctions_winner_id_fkey(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Handle Supabase returning arrays for joined relations to match application types
+      const auctions = data as unknown as Record<string, unknown>[];
+      return auctions.map(auction => ({
+        ...auction,
+        designer: Array.isArray(auction.designer) ? auction.designer[0] : auction.designer,
+        winner: Array.isArray(auction.winner) ? auction.winner[0] : auction.winner,
+      })) as Auction[];
+    },
+    refetchOnWindowFocus: true,
+  });
+};
+
+export const useAuction = (id: string | undefined) => {
+  const supabase = getSupabaseClient();
+  
+  return useQuery({
+    queryKey: ['auction', id],
+    queryFn: async () => {
+      if (!id || !supabase) return null;
+      
+      const { data, error } = await supabase
+        .from('auctions')
+        .select(`
+          *,
+          designer:profiles!auctions_designer_id_fkey(*),
+          winner:profiles!auctions_winner_id_fkey(*)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      // Handle Supabase returning arrays for joined relations
+      const auction = data as unknown as Record<string, unknown>;
+      return {
+        ...auction,
+        designer: Array.isArray(auction.designer) ? auction.designer[0] : auction.designer,
+        winner: Array.isArray(auction.winner) ? auction.winner[0] : auction.winner,
+      } as Auction;
+    },
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+  });
+};
+
+interface CreateAuctionInput {
+  title: string;
+  description?: string | null;
+  materials?: string | null;
+  sizing?: string | null;
+  images: string[];
+  startPrice: number;
+  requiredBidders: number;
+  endTime: string;
+  status?: Database['public']['Enums']['auction_status'];
+}
+
+export const useCreateAuction = () => {
+  const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
+
+  return {
+    ...useMutation({
+      mutationFn: async (input: CreateAuctionInput) => {
+        if (!supabase) {
+          throw new Error('Database not configured');
+        }
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('Authentication required to create an auction');
+        }
+
+        const auctionData: TablesInsert<'auctions'> = {
+          designer_id: user.id,
+          title: input.title,
+          description: input.description || null,
+          materials: input.materials || null,
+          sizing: input.sizing || null,
+          images: input.images,
+          start_price: input.startPrice,
+          current_price: input.startPrice,
+          required_bidders: input.requiredBidders,
+          end_time: input.endTime,
+          status: input.status || 'PROPOSED',
+          unique_bidder_count: 0,
+        };
+
+        const { data, error } = await supabase
+          .from('auctions')
+          .insert(auctionData)
+          .select(`
+            *,
+            designer:profiles!auctions_designer_id_fkey(*)
+          `)
+          .single();
+
+        if (error) throw error;
+        return data as Auction;
+      },
+      onSuccess: async (newAuction) => {
+        queryClient.setQueryData(['auctions'], (old: Auction[] | undefined) => {
+          if (!old) return [newAuction];
+          const exists = old.some(a => a.id === newAuction.id);
+          if (exists) return old;
+          return [newAuction, ...old];
+        });
+        await queryClient.refetchQueries({ queryKey: ['auctions'] });
+      },
+    }),
+    supabase,
+  };
+};
+
+export const useDeleteAuction = (isAdmin: boolean = false) => {
+  const queryClient = useQueryClient();
+  const supabase = getSupabaseClient();
+
+  return useMutation({
+    mutationFn: async (auctionId: string) => {
+      if (!supabase) {
+        throw new Error('Database not configured');
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Authentication required to delete an auction');
+      }
+
+      const { data: auction, error: fetchError } = await supabase
+        .from('auctions')
+        .select('id, designer_id, status, unique_bidder_count')
+        .eq('id', auctionId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!auction) throw new Error('Auction not found');
+
+      // If not admin, check if user is the designer
+      if (!isAdmin) {
+        if (auction.designer_id !== user.id) {
+          throw new Error('Only the designer of this auction can delete it');
+        }
+
+        if (auction.status !== 'LOCKED') {
+          throw new Error('Can only delete LOCKED auctions. Once bids are placed, auctions cannot be removed.');
+        }
+
+        if (auction.unique_bidder_count > 0) {
+          throw new Error('Cannot delete auction with existing bids');
+        }
+
+        const { error } = await supabase
+          .from('auctions')
+          .delete()
+          .eq('id', auctionId);
+
+        if (error) throw error;
+        return auctionId;
+      }
+
+      // Admins use the backend API to bypass RLS
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Authentication required');
+
+      const response = await fetch('/api/admin/auctions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ auctionId, action: 'delete_auction' })
+      });
+      
+      if (!response.ok) {
+         const err = await response.json();
+         throw new Error(err.error || 'Failed to delete auction');
+      }
+      return auctionId;
+    },
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData(['auctions'], (old: Auction[] | undefined) => {
+        if (!old) return [];
+        return old.filter(a => a.id !== deletedId);
+      });
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
+};
+
+// Hook to check and update expired auctions
+export const useCheckExpiredAuctions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auctions/check-expired', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to check expired auctions');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate auctions query to refetch with updated statuses
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      queryClient.invalidateQueries({ queryKey: ['auction'] });
+    },
+  });
+};
+
+// Hook to reactivate a SOLD auction back to the floor
+export const useReactivateAuction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ auctionId, endTime }: { auctionId: string; endTime?: string }) => {
+      const response = await fetch('/api/auctions/reactivate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ auctionId, endTime }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reactivate auction');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate auctions query to refetch with updated status
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      queryClient.invalidateQueries({ queryKey: ['auction'] });
+    },
+  });
+};

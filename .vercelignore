@@ -1,0 +1,3 @@
+# Ignore parent directory if deploying from nested structure
+../
+

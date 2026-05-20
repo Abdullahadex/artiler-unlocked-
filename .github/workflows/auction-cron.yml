@@ -1,0 +1,21 @@
+name: Auction Close Monitor
+
+on:
+  schedule:
+    # Run every 5 minutes (standard free-tier GitHub Actions limit)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # Allows manual triggering for testing
+
+jobs:
+  close-auctions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Auction Close API
+        run: |
+          # Use curl to hit the Vercel API endpoint
+          # The CRON_SECRET is stored in GitHub Repository Secrets
+          # The APP_URL is the production URL of the Vercel deployment
+          curl -X GET "${{ vars.NEXT_PUBLIC_APP_URL || 'https://artelier-unlocked.vercel.app' }}/api/cron/auction-end" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
