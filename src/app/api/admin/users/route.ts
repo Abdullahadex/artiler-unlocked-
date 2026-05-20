@@ -70,13 +70,16 @@ export async function POST(request: Request) {
       if (!authUserError && authUser?.email) {
         try {
           const { sendEmail } = await import('@/lib/email');
-          await sendEmail(authUser.email, 'welcome', {
+          // Fire-and-forget the email so it doesn't block the API response
+          sendEmail(authUser.email, 'welcome', {
             firstName: authUser.user_metadata?.display_name || 'Collector'
+          }).then(() => {
+            console.log('Waitlist approval email sent to', authUser.email);
+          }).catch(emailError => {
+            console.error('Failed to send waitlist approval email:', emailError);
           });
-          console.log('Waitlist approval email sent to', authUser.email);
-        } catch (emailError) {
-          console.error('Failed to send waitlist approval email:', emailError);
-          // We don't fail the request if email fails, they are still approved in DB
+        } catch (importError) {
+          console.error('Failed to import email library:', importError);
         }
       }
 
@@ -119,12 +122,16 @@ export async function POST(request: Request) {
       if (!authUserError && authUser?.email) {
         try {
           const { sendEmail } = await import('@/lib/email');
-          await sendEmail(authUser.email, 'welcome', {
+          // Fire-and-forget the email so it doesn't block the API response
+          sendEmail(authUser.email, 'welcome', {
             firstName: authUser.user_metadata?.display_name || 'Designer'
+          }).then(() => {
+            console.log('Designer approval email sent to', authUser.email);
+          }).catch(emailError => {
+            console.error('Failed to send designer approval email:', emailError);
           });
-          console.log('Designer approval email sent to', authUser.email);
-        } catch (emailError) {
-          console.error('Failed to send designer approval email:', emailError);
+        } catch (importError) {
+          console.error('Failed to import email library:', importError);
         }
       }
 
